@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '../ui/button';
-import { MapPin, Clock } from 'lucide-react';
+import { MapPin, Clock, Ticket } from 'lucide-react';
 
 const venues = [
   {
@@ -101,15 +101,28 @@ export default function TicketingSection() {
             ))}
           </div>
         ) : (
-          <motion.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ duration: 0.6 }}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
             viewport={{ once: true }}
-            className="text-center text-text-muted text-lg"
+            className="border-2 border-dashed border-purple/25 rounded-2xl flex flex-col items-center justify-center py-24 px-8 text-center bg-white/50 max-w-4xl mx-auto"
           >
-            Ouverture de la billetterie prochainement — restez connectés !
-          </motion.p>
+            <motion.div
+              animate={{ rotate: [0, 5, -5, 0] }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <Ticket size={48} className="text-purple/50 mb-6" />
+            </motion.div>
+            <h3 className="font-display text-2xl font-bold text-text-primary mb-3">
+              Bientôt disponible
+            </h3>
+            <p className="text-text-muted max-w-md leading-relaxed">
+              La billetterie pour{' '}
+              <span className="text-purple">15 minutes</span> ouvrira très prochainement.
+              Restez connecté·e·s !
+            </p>
+          </motion.div>
         )}
       </div>
     </section>
