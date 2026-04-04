@@ -1,13 +1,87 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #FAF8F6;
+    --surface: #FFFFFF;
+    --surface-2: #F4EEF7;
+    --teal: #7BB7AA;
+    --purple: #B8A0BB;
+    --gold: #C9973E;
+    --text-primary: #1F1F2E;
+    --text-muted: #6B7280;
+    --border: rgba(0, 0, 0, 0.08);
+    --radius: 0.75rem;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--text-primary);
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background-color: rgba(123, 183, 170, 0.25);
+    color: #1F1F2E;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--background);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(123, 183, 170, 0.4);
+    border-radius: 3px;
+  }
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+@layer components {
+  .section-container {
+    @apply max-w-6xl mx-auto px-6 py-24;
+  }
+
+  .section-title {
+    @apply font-display text-4xl md:text-5xl font-bold text-text-primary mb-4;
+  }
+
+  .section-subtitle {
+    @apply text-text-muted text-lg leading-relaxed;
+  }
+
+  .glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(12px);
+    border-radius: var(--radius);
+  }
+
+  .teal-gradient-text {
+    background: linear-gradient(135deg, var(--teal), var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .divider-teal {
+    @apply w-16 h-1 rounded-full bg-teal mt-4 mb-8;
+  }
 }
