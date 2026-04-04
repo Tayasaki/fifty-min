@@ -9,7 +9,7 @@ const fadeUp = {
   visible: (i = 0) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.6, delay: i * 0.12, ease: 'easeOut' },
+    transition: { duration: 0.6, delay: i * 0.12, ease: 'easeOut' as const },
   }),
 };
 
@@ -128,7 +128,7 @@ export default function ContactSection() {
             <div className="border border-black/8 bg-white rounded-2xl p-8 text-center shadow-card">
               <motion.div
                 animate={{ scale: [1, 1.05, 1] }}
-                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' as const }}
                 className="text-5xl mb-4"
               >
                 ✉️

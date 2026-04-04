@@ -3,11 +3,11 @@ import { motion } from 'framer-motion';
 import { Button } from '../ui/button';
 import { ChevronDown } from 'lucide-react';
 
-const MusicalNote = ({ className, delay = 0 }) => (
+const MusicalNote = ({ className, delay = 0 }: { className: string; delay?: number }) => (
   <motion.div
     className={`absolute select-none pointer-events-none font-display ${className}`}
     animate={{ y: [-10, 10, -10], opacity: [0.25, 0.55, 0.25] }}
-    transition={{ duration: 5 + delay, repeat: Infinity, ease: 'easeInOut', delay }}
+    transition={{ duration: 5 + delay, repeat: Infinity, ease: 'easeInOut' as const, delay }}
   >
     ♪
   </motion.div>
@@ -20,7 +20,7 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: 'easeOut' } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: 'easeOut' as const } },
 };
 
 export default function HeroSection() {
@@ -129,7 +129,7 @@ export default function HeroSection() {
       >
         <motion.div
           animate={{ y: [0, 8, 0] }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' as const }}
         >
           <ChevronDown size={28} />
         </motion.div>

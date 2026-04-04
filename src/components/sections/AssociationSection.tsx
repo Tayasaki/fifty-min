@@ -9,7 +9,7 @@ const fadeUp = {
   visible: (i = 0) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.6, delay: i * 0.12, ease: 'easeOut' },
+    transition: { duration: 0.6, delay: i * 0.12, ease: 'easeOut' as const },
   }),
 };
 
@@ -89,7 +89,7 @@ export default function AssociationSection() {
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.7, ease: 'easeOut' }}
+              transition={{ duration: 0.7, ease: 'easeOut' as const }}
               viewport={{ once: true }}
               className="flex justify-center mb-10"
             >

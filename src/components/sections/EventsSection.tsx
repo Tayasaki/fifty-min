@@ -29,7 +29,7 @@ export default function EventsSection() {
         >
           <motion.div
             animate={{ rotate: [0, 5, -5, 0] }}
-            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' as const }}
           >
             <Calendar size={48} className="text-teal/50 mb-6" />
           </motion.div>
