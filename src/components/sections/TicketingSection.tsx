@@ -27,6 +27,8 @@ const venues = [
   },
 ];
 
+const showTicketing = process.env.REACT_APP_SHOW_TICKETING === 'true';
+
 export default function TicketingSection() {
   return (
     <section
@@ -51,52 +53,64 @@ export default function TicketingSection() {
           <div className="w-16 h-1 rounded-full bg-purple mx-auto mt-4" />
         </motion.div>
 
-        {/* Venue cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-          {venues.map((venue, i) => (
-            <motion.div
-              key={venue.name}
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55, delay: i * 0.12 }}
-              viewport={{ once: true }}
-              whileHover={{ y: -6 }}
-              className="bg-white/70 backdrop-blur-sm rounded-2xl p-8 shadow-card hover:shadow-card-hover transition-shadow flex flex-col gap-6 border border-black/6"
-            >
-              {/* Venue name */}
-              <div>
-                <div className="flex items-start gap-2 mb-1">
-                  <MapPin size={15} className="text-text-muted mt-0.5 shrink-0" />
-                  <span className="text-text-muted text-xs uppercase tracking-wide">
-                    {venue.location}
-                  </span>
+        {showTicketing ? (
+          /* Venue cards */
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            {venues.map((venue, i) => (
+              <motion.div
+                key={venue.name}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.55, delay: i * 0.12 }}
+                viewport={{ once: true }}
+                whileHover={{ y: -6 }}
+                className="bg-white/70 backdrop-blur-sm rounded-2xl p-8 shadow-card hover:shadow-card-hover transition-shadow flex flex-col gap-6 border border-black/6"
+              >
+                {/* Venue name */}
+                <div>
+                  <div className="flex items-start gap-2 mb-1">
+                    <MapPin size={15} className="text-text-muted mt-0.5 shrink-0" />
+                    <span className="text-text-muted text-xs uppercase tracking-wide">
+                      {venue.location}
+                    </span>
+                  </div>
+                  <h3 className="font-display text-xl font-bold text-text-primary uppercase leading-snug">
+                    {venue.name}
+                  </h3>
                 </div>
-                <h3 className="font-display text-xl font-bold text-text-primary uppercase leading-snug">
-                  {venue.name}
-                </h3>
-              </div>
 
-              {/* Dates */}
-              <ul className="flex flex-col gap-2">
-                {venue.dates.map((date) => (
-                  <li key={date} className="flex items-center gap-2 text-text-muted text-sm">
-                    <Clock size={13} className="text-purple shrink-0" />
-                    {date}
-                  </li>
-                ))}
-              </ul>
+                {/* Dates */}
+                <ul className="flex flex-col gap-2">
+                  {venue.dates.map((date) => (
+                    <li key={date} className="flex items-center gap-2 text-text-muted text-sm">
+                      <Clock size={13} className="text-purple shrink-0" />
+                      {date}
+                    </li>
+                  ))}
+                </ul>
 
-              {/* Button */}
-              <div className="mt-auto">
-                <Button variant="dark" size="lg" className="rounded-full w-full" asChild>
-                  <a href={venue.ticketUrl} target="_blank" rel="noopener noreferrer">
-                    Billetterie
-                  </a>
-                </Button>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+                {/* Button */}
+                <div className="mt-auto">
+                  <Button variant="dark" size="lg" className="rounded-full w-full" asChild>
+                    <a href={venue.ticketUrl} target="_blank" rel="noopener noreferrer">
+                      Billetterie
+                    </a>
+                  </Button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        ) : (
+          <motion.p
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ duration: 0.6 }}
+            viewport={{ once: true }}
+            className="text-center text-text-muted text-lg"
+          >
+            Ouverture de la billetterie prochainement — restez connectés !
+          </motion.p>
+        )}
       </div>
     </section>
   );
