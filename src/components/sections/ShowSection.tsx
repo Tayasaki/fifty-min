@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { Users, Music, Mic2, BookOpen, X } from 'lucide-react';
+import { Users, Music, Mic2, BookOpen, RotateCcw } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 const fadeUp = {
@@ -41,6 +41,7 @@ interface InfoCard {
   color: string;
   barColor: string;
   bgColor: string;
+  bgSolid: string;
   borderColor: string;
   details: string[];
 }
@@ -53,6 +54,7 @@ const infoCards: InfoCard[] = [
     color: 'text-teal',
     barColor: 'bg-teal/40',
     bgColor: 'bg-teal/10',
+    bgSolid: 'bg-[#F1F8F6]',
     borderColor: 'border-teal/30',
     details: [
       "Un processus de création collaboratif qui implique les interprètes tout au long du projet.",
@@ -67,6 +69,7 @@ const infoCards: InfoCard[] = [
     color: 'text-purple',
     barColor: 'bg-purple/40',
     bgColor: 'bg-purple/10',
+    bgSolid: 'bg-[#F7F4F7]',
     borderColor: 'border-purple/30',
     details: [
       "Six protagonistes principaux : Riley, Sacha, Noah, Morgan, Andy et Camille.",
@@ -81,6 +84,7 @@ const infoCards: InfoCard[] = [
     color: 'text-gold',
     barColor: 'bg-gold/40',
     bgColor: 'bg-gold/10',
+    bgSolid: 'bg-[#FCF7EF]',
     borderColor: 'border-gold/30',
     details: [
       "Un répertoire varié : comédies musicales de Broadway, chansons de l'univers Disney et titres contemporains.",
@@ -95,6 +99,7 @@ const infoCards: InfoCard[] = [
     color: 'text-teal',
     barColor: 'bg-teal/40',
     bgColor: 'bg-teal/10',
+    bgSolid: 'bg-[#F1F8F6]',
     borderColor: 'border-teal/30',
     details: [
       "Romy incarne un regard extérieur sur le monde de l'influence — parfois lucide, parfois cynique.",
@@ -105,17 +110,11 @@ const infoCards: InfoCard[] = [
 ];
 
 export default function ShowSection() {
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [flippedIndex, setFlippedIndex] = useState<number | null>(null);
 
-  // Close on Escape key
-  useEffect(() => {
-    if (activeIndex === null) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setActiveIndex(null); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [activeIndex]);
-
-  const activeCard = activeIndex !== null ? infoCards[activeIndex] : null;
+  const toggleFlip = (i: number) => {
+    setFlippedIndex(flippedIndex === i ? null : i);
+  };
 
   return (
     <section id="spectacle" className="bg-surface py-24">
@@ -139,121 +138,90 @@ export default function ShowSection() {
           </p>
         </motion.div>
 
-        {/* Info cards — 2×2 grid, click to open spotlight modal */}
+        {/* Info cards — 2×2 grid, click to flip */}
         <motion.div
           variants={fadeUp}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: '-60px' }}
-          className="grid grid-cols-2 gap-4 mb-16"
+          className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-16"
         >
           {infoCards.map((card, i) => {
             const Icon = card.icon;
-            const isActive = activeIndex === i;
-            const isDeemphasized = activeIndex !== null && !isActive;
+            const isFlipped = flippedIndex === i;
             return (
-              <button
+              <div
                 key={card.title}
-                onClick={() => setActiveIndex(i)}
-                className="text-left w-full"
+                className="relative cursor-pointer"
+                style={{ perspective: '1000px', minHeight: '260px' }}
+                onClick={() => toggleFlip(i)}
               >
-                <Card
-                  className={cn(
-                    'transition-all duration-300 cursor-pointer select-none',
-                    isActive
-                      ? `${card.bgColor} shadow-card-hover ring-2 ring-offset-2`
-                      : isDeemphasized
-                        ? 'opacity-40'
-                        : 'hover:shadow-card-hover hover:scale-[1.01]'
-                  )}
+                <motion.div
+                  animate={{ rotateY: isFlipped ? 180 : 0 }}
+                  transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+                  style={{ transformStyle: 'preserve-3d', position: 'relative', width: '100%', height: '100%' }}
                 >
-                  <CardHeader className="pb-3">
-                    <Icon size={22} className={card.color} />
-                    <CardTitle className="text-base mt-2">{card.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription>{card.content}</CardDescription>
-                    <p className={cn('text-xs mt-3 font-medium', card.color)}>
-                      En savoir plus →
-                    </p>
-                  </CardContent>
-                </Card>
-              </button>
+                  {/* Front face */}
+                  <div
+                    className="absolute inset-0"
+                    style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
+                  >
+                    <Card className="h-full transition-shadow duration-300 hover:shadow-card-hover select-none">
+                      <CardHeader className="pb-3">
+                        <Icon size={22} className={card.color} />
+                        <CardTitle className="text-base mt-2">{card.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <CardDescription>{card.content}</CardDescription>
+                        <p className={cn('text-xs mt-3 font-medium', card.color)}>
+                          En savoir plus →
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Back face */}
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      backfaceVisibility: 'hidden',
+                      WebkitBackfaceVisibility: 'hidden',
+                      transform: 'rotateY(180deg)',
+                    }}
+                  >
+                    <Card
+                      className={cn(
+                        'h-full select-none overflow-y-auto shadow-card-hover',
+                        card.bgSolid,
+                        card.borderColor
+                      )}
+                    >
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Icon size={20} className={card.color} />
+                            <CardTitle className="text-base">{card.title}</CardTitle>
+                          </div>
+                          <RotateCcw size={16} className="text-text-muted" />
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex flex-col gap-3">
+                          {card.details.map((detail, j) => (
+                            <div key={j} className="flex items-start gap-3">
+                              <div className={`mt-1.5 w-0.5 h-4 rounded-full shrink-0 ${card.barColor}`} />
+                              <p className="text-sm text-text-muted leading-relaxed">{detail}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </motion.div>
+              </div>
             );
           })}
         </motion.div>
-
-        {/* Spotlight modal */}
-        <AnimatePresence>
-          {activeCard && (
-            <>
-              {/* Backdrop */}
-              <motion.div
-                key="backdrop"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
-                onClick={() => setActiveIndex(null)}
-              />
-              {/* Modal */}
-              <motion.div
-                key="modal"
-                initial={{ opacity: 0, scale: 0.92, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.92, y: 20 }}
-                transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                className="fixed inset-0 z-50 flex items-center justify-center p-6 pointer-events-none"
-              >
-                <div
-                  className={cn(
-                    'pointer-events-auto w-full max-w-lg rounded-2xl shadow-2xl border p-8',
-                    'bg-surface',
-                    activeCard.borderColor
-                  )}
-                >
-                  {/* Header */}
-                  <div className="flex items-start justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                      {(() => { const Icon = activeCard.icon; return <Icon size={24} className={activeCard.color} />; })()}
-                      <h3 className="font-display text-xl font-bold text-text-primary">
-                        {activeCard.title}
-                      </h3>
-                    </div>
-                    <button
-                      onClick={() => setActiveIndex(null)}
-                      className="text-text-muted hover:text-text-primary transition-colors ml-4 shrink-0"
-                    >
-                      <X size={20} />
-                    </button>
-                  </div>
-
-                  {/* Summary */}
-                  <p className="text-text-muted text-sm leading-relaxed mb-6 pb-6 border-b border-black/8">
-                    {activeCard.content}
-                  </p>
-
-                  {/* Details */}
-                  <div className="flex flex-col gap-4">
-                    {activeCard.details.map((detail, j) => (
-                      <motion.div
-                        key={j}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: j * 0.08 + 0.1, duration: 0.3, ease: 'easeOut' }}
-                        className="flex items-start gap-3"
-                      >
-                        <div className={`mt-1.5 w-0.5 h-4 rounded-full shrink-0 ${activeCard.barColor}`} />
-                        <p className="text-sm text-text-muted leading-relaxed">{detail}</p>
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
 
         {/* Themes */}
         <motion.div

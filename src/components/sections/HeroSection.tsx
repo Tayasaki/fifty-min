@@ -3,13 +3,13 @@ import { motion } from 'framer-motion';
 import { Button } from '../ui/button';
 import { ChevronDown } from 'lucide-react';
 
-const MusicalNote = ({ className, delay = 0 }: { className: string; delay?: number }) => (
+const MusicalNote = ({ className, delay = 0, symbol = '♪' }: { className: string; delay?: number; symbol?: string }) => (
   <motion.div
     className={`absolute select-none pointer-events-none font-display ${className}`}
-    animate={{ y: [-10, 10, -10], opacity: [0.25, 0.55, 0.25] }}
+    animate={{ y: [-10, 10, -10], opacity: [0.4, 0.75, 0.4] }}
     transition={{ duration: 5 + delay, repeat: Infinity, ease: 'easeInOut' as const, delay }}
   >
-    ♪
+    {symbol}
   </motion.div>
 );
 
@@ -48,12 +48,17 @@ export default function HeroSection() {
       />
 
       {/* Decorative musical notes */}
-      <MusicalNote className="text-6xl top-24 left-[8%] text-teal/30" delay={0} />
-      <MusicalNote className="text-4xl top-40 right-[10%] text-purple/25" delay={1.5} />
-      <MusicalNote className="text-8xl top-1/3 left-[3%] text-purple/20" delay={0.8} />
-      <MusicalNote className="text-5xl bottom-1/3 right-[6%] text-teal/25" delay={2.2} />
-      <MusicalNote className="text-3xl bottom-1/4 left-[15%] text-teal/20" delay={3} />
-      <MusicalNote className="text-7xl top-1/4 right-[20%] text-purple/15" delay={1} />
+      <MusicalNote className="text-6xl top-24 left-[8%] text-teal/50" delay={0} />
+      <MusicalNote className="text-4xl top-40 right-[10%] text-purple/45" delay={1.5} symbol="♫" />
+      <MusicalNote className="text-8xl top-1/3 left-[3%] text-purple/35" delay={0.8} />
+      <MusicalNote className="text-5xl bottom-1/3 right-[6%] text-teal/45" delay={2.2} symbol="♬" />
+      <MusicalNote className="text-3xl bottom-1/4 left-[15%] text-teal/40" delay={3} symbol="♫" />
+      <MusicalNote className="text-7xl top-1/4 right-[20%] text-purple/30" delay={1} />
+      <MusicalNote className="text-5xl top-16 right-[35%] text-gold/40" delay={0.5} symbol="♬" />
+      <MusicalNote className="text-3xl top-[45%] left-[12%] text-gold/35" delay={1.8} symbol="♫" />
+      <MusicalNote className="text-4xl bottom-[20%] right-[18%] text-teal/35" delay={2.8} />
+      <MusicalNote className="text-6xl top-[15%] left-[25%] text-purple/30" delay={3.5} symbol="♬" />
+      <MusicalNote className="text-3xl bottom-[40%] left-[5%] text-gold/30" delay={0.3} />
 
       {/* Content */}
       <motion.div
