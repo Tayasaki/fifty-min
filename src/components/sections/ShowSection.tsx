@@ -130,7 +130,7 @@ export default function ShowSection() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: '-60px' }}
-          className="grid grid-cols-2 gap-4 mb-16 items-end"
+          className="grid grid-cols-2 gap-4 mb-16"
         >
           {infoCards.map((card, i) => {
             const Icon = card.icon;
@@ -142,7 +142,7 @@ export default function ShowSection() {
                 key={card.title}
                 onMouseEnter={() => setHoveredIndex(i)}
                 onMouseLeave={() => setHoveredIndex(null)}
-                className={expandUp ? 'flex flex-col justify-end' : ''}
+                className={expandUp ? 'self-end' : 'self-start'}
               >
                 <Card
                   className={cn(
