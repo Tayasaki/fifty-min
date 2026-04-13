@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Users, Music, Mic2, BookOpen } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
@@ -24,12 +25,17 @@ const themes = [
   'Influence',
 ];
 
+const themeVariants: ('default' | 'purple' | 'gold')[] = [
+  'default', 'purple', 'gold', 'default', 'purple', 'gold', 'default', 'purple',
+];
+
 interface InfoCard {
   icon: React.ElementType;
   title: string;
   content: string;
   color: string;
   barColor: string;
+  bgColor: string;
   details: string[];
 }
 
@@ -40,6 +46,7 @@ const infoCards: InfoCard[] = [
     content: "Écrite et mise en scène par Nora « Pâris » Spycher, en collaboration avec les membres de l'association.",
     color: 'text-teal',
     barColor: 'bg-teal/40',
+    bgColor: 'bg-teal/8',
     details: [
       "Un processus de création collaboratif qui implique les interprètes tout au long du projet.",
       "Chaque comédien·ne est accompagné·e par des coachs en jeu théâtral, chant et danse.",
@@ -52,6 +59,7 @@ const infoCards: InfoCard[] = [
     content: "Une vingtaine de comédien·ne·s accompagné·e·s de coachs en jeu théâtral, chant et danse.",
     color: 'text-purple',
     barColor: 'bg-purple/40',
+    bgColor: 'bg-purple/8',
     details: [
       "Six protagonistes principaux : Riley, Sacha, Noah, Morgan, Andy et Camille.",
       "Une dizaine de personnages secondaires : parents, ami·e·s, managers, marques, fans, haters et influenceur·euse·s.",
@@ -64,6 +72,7 @@ const infoCards: InfoCard[] = [
     content: "Reprises de comédies musicales, de l'univers Disney et de chansons actuelles, majoritairement traduites en français.",
     color: 'text-gold',
     barColor: 'bg-gold/40',
+    bgColor: 'bg-gold/8',
     details: [
       "Un répertoire varié : comédies musicales de Broadway, chansons de l'univers Disney et titres contemporains.",
       "Les titres sont adaptés et traduits en français pour servir le propos dramaturgique et émotionnel.",
@@ -76,6 +85,7 @@ const infoCards: InfoCard[] = [
     content: "Romy, personnage issu de la « vallée du silicone », guide les protagonistes à travers les mécanismes de la visibilité numérique.",
     color: 'text-teal',
     barColor: 'bg-teal/40',
+    bgColor: 'bg-teal/8',
     details: [
       "Romy incarne un regard extérieur sur le monde de l'influence — parfois lucide, parfois cynique.",
       "Son fil narratif structure le spectacle et assure une cohérence dramaturgique à l'ensemble.",
@@ -120,13 +130,23 @@ export default function ShowSection() {
           {infoCards.map((card, i) => {
             const Icon = card.icon;
             const isHovered = hoveredIndex === i;
+            const isDeemphasized = hoveredIndex !== null && !isHovered;
             return (
               <div
                 key={card.title}
                 onMouseEnter={() => setHoveredIndex(i)}
                 onMouseLeave={() => setHoveredIndex(null)}
               >
-                <Card className="transition-shadow duration-200 hover:shadow-card-hover">
+                <Card
+                  className={cn(
+                    'transition-all duration-300',
+                    isHovered
+                      ? `${card.bgColor} shadow-card-hover`
+                      : isDeemphasized
+                        ? 'opacity-40'
+                        : 'hover:shadow-card-hover'
+                  )}
+                >
                   <CardHeader className="pb-3">
                     <Icon size={22} className={card.color} />
                     <CardTitle className="text-base mt-2">{card.title}</CardTitle>
@@ -192,7 +212,7 @@ export default function ShowSection() {
                 transition={{ delay: i * 0.06, duration: 0.4 }}
                 viewport={{ once: true }}
               >
-                <Badge variant="muted" className="text-xs">
+                <Badge variant={themeVariants[i % themeVariants.length]} className="text-xs">
                   {theme}
                 </Badge>
               </motion.div>

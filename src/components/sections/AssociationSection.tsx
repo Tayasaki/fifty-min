@@ -67,8 +67,13 @@ export default function AssociationSection() {
   return (
     <section id="association" className="bg-surface-2 py-24">
       <div className="max-w-6xl mx-auto px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          {/* Text */}
+        {/*
+          items-start: both columns anchored at the top of their grid area.
+          When the right column expands (cards open), the left column stays
+          locked at the top — it never re-centers or shifts.
+        */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+          {/* Text — left column, stays at top thanks to items-start */}
           <div>
             <motion.div
               variants={fadeUp}
@@ -113,7 +118,7 @@ export default function AssociationSection() {
             </motion.div>
           </div>
 
-          {/* Logo + missions */}
+          {/* Logo + missions — right column, expands inline downward */}
           <div>
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
