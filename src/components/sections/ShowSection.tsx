@@ -23,10 +23,15 @@ const themes = [
   'Santé mentale',
   'Algorithmes',
   'Influence',
+  'Viralité',
+  'Harcèlement en ligne',
+  'Vie privée',
+  'Désinformation',
 ];
 
 const themeVariants: ('default' | 'purple' | 'gold')[] = [
   'default', 'purple', 'gold', 'default', 'purple', 'gold', 'default', 'purple',
+  'gold', 'default', 'purple', 'gold',
 ];
 
 interface InfoCard {
@@ -125,17 +130,19 @@ export default function ShowSection() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: '-60px' }}
-          className="grid grid-cols-2 gap-4 mb-16"
+          className="grid grid-cols-2 gap-4 mb-16 items-end"
         >
           {infoCards.map((card, i) => {
             const Icon = card.icon;
             const isHovered = hoveredIndex === i;
             const isDeemphasized = hoveredIndex !== null && !isHovered;
+            const expandUp = i < 2; // top row expands upward
             return (
               <div
                 key={card.title}
                 onMouseEnter={() => setHoveredIndex(i)}
                 onMouseLeave={() => setHoveredIndex(null)}
+                className={expandUp ? 'flex flex-col justify-end' : ''}
               >
                 <Card
                   className={cn(
@@ -147,16 +154,11 @@ export default function ShowSection() {
                         : 'hover:shadow-card-hover'
                   )}
                 >
-                  <CardHeader className="pb-3">
-                    <Icon size={22} className={card.color} />
-                    <CardTitle className="text-base mt-2">{card.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription>{card.content}</CardDescription>
+                  {expandUp && (
                     <AnimatePresence initial={false}>
                       {isHovered && (
                         <motion.div
-                          key="details"
+                          key="details-up"
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: 'auto', opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
@@ -166,7 +168,7 @@ export default function ShowSection() {
                           }}
                           className="overflow-hidden"
                         >
-                          <div className="mt-4 pt-4 border-t border-black/6 flex flex-col gap-3">
+                          <div className="px-6 pt-4 pb-2 flex flex-col gap-3 border-b border-black/6">
                             {card.details.map((detail, j) => (
                               <motion.div
                                 key={j}
@@ -183,6 +185,45 @@ export default function ShowSection() {
                         </motion.div>
                       )}
                     </AnimatePresence>
+                  )}
+                  <CardHeader className="pb-3">
+                    <Icon size={22} className={card.color} />
+                    <CardTitle className="text-base mt-2">{card.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription>{card.content}</CardDescription>
+                    {!expandUp && (
+                      <AnimatePresence initial={false}>
+                        {isHovered && (
+                          <motion.div
+                            key="details-down"
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{
+                              height: { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
+                              opacity: { duration: 0.25 },
+                            }}
+                            className="overflow-hidden"
+                          >
+                            <div className="mt-4 pt-4 border-t border-black/6 flex flex-col gap-3">
+                              {card.details.map((detail, j) => (
+                                <motion.div
+                                  key={j}
+                                  initial={{ opacity: 0, x: -8 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ delay: j * 0.07 + 0.1, duration: 0.3, ease: 'easeOut' }}
+                                  className="flex items-start gap-3"
+                                >
+                                  <div className={`mt-1 w-0.5 self-stretch rounded-full shrink-0 ${card.barColor}`} />
+                                  <p className="text-sm text-text-muted leading-relaxed">{detail}</p>
+                                </motion.div>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    )}
                   </CardContent>
                 </Card>
               </div>
