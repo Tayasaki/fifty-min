@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { Users, Music, Mic2, BookOpen } from 'lucide-react';
+import { Users, Music, Mic2, BookOpen, X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 const fadeUp = {
@@ -41,6 +41,7 @@ interface InfoCard {
   color: string;
   barColor: string;
   bgColor: string;
+  borderColor: string;
   details: string[];
 }
 
@@ -51,7 +52,8 @@ const infoCards: InfoCard[] = [
     content: "Écrite et mise en scène par Nora « Pâris » Spycher, en collaboration avec les membres de l'association.",
     color: 'text-teal',
     barColor: 'bg-teal/40',
-    bgColor: 'bg-teal/8',
+    bgColor: 'bg-teal/10',
+    borderColor: 'border-teal/30',
     details: [
       "Un processus de création collaboratif qui implique les interprètes tout au long du projet.",
       "Chaque comédien·ne est accompagné·e par des coachs en jeu théâtral, chant et danse.",
@@ -64,7 +66,8 @@ const infoCards: InfoCard[] = [
     content: "Une vingtaine de comédien·ne·s accompagné·e·s de coachs en jeu théâtral, chant et danse.",
     color: 'text-purple',
     barColor: 'bg-purple/40',
-    bgColor: 'bg-purple/8',
+    bgColor: 'bg-purple/10',
+    borderColor: 'border-purple/30',
     details: [
       "Six protagonistes principaux : Riley, Sacha, Noah, Morgan, Andy et Camille.",
       "Une dizaine de personnages secondaires : parents, ami·e·s, managers, marques, fans, haters et influenceur·euse·s.",
@@ -77,7 +80,8 @@ const infoCards: InfoCard[] = [
     content: "Reprises de comédies musicales, de l'univers Disney et de chansons actuelles, majoritairement traduites en français.",
     color: 'text-gold',
     barColor: 'bg-gold/40',
-    bgColor: 'bg-gold/8',
+    bgColor: 'bg-gold/10',
+    borderColor: 'border-gold/30',
     details: [
       "Un répertoire varié : comédies musicales de Broadway, chansons de l'univers Disney et titres contemporains.",
       "Les titres sont adaptés et traduits en français pour servir le propos dramaturgique et émotionnel.",
@@ -90,7 +94,8 @@ const infoCards: InfoCard[] = [
     content: "Romy, personnage issu de la « vallée du silicone », guide les protagonistes à travers les mécanismes de la visibilité numérique.",
     color: 'text-teal',
     barColor: 'bg-teal/40',
-    bgColor: 'bg-teal/8',
+    bgColor: 'bg-teal/10',
+    borderColor: 'border-teal/30',
     details: [
       "Romy incarne un regard extérieur sur le monde de l'influence — parfois lucide, parfois cynique.",
       "Son fil narratif structure le spectacle et assure une cohérence dramaturgique à l'ensemble.",
@@ -100,7 +105,17 @@ const infoCards: InfoCard[] = [
 ];
 
 export default function ShowSection() {
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+
+  // Close on Escape key
+  useEffect(() => {
+    if (activeIndex === null) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setActiveIndex(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [activeIndex]);
+
+  const activeCard = activeIndex !== null ? infoCards[activeIndex] : null;
 
   return (
     <section id="spectacle" className="bg-surface py-24">
@@ -124,7 +139,7 @@ export default function ShowSection() {
           </p>
         </motion.div>
 
-        {/* Info cards — hover to expand inline, 2×2 grid */}
+        {/* Info cards — 2×2 grid, click to open spotlight modal */}
         <motion.div
           variants={fadeUp}
           initial="hidden"
@@ -134,24 +149,22 @@ export default function ShowSection() {
         >
           {infoCards.map((card, i) => {
             const Icon = card.icon;
-            const isHovered = hoveredIndex === i;
-            const isDeemphasized = hoveredIndex !== null && !isHovered;
-            const isTopRow = i < 2;
+            const isActive = activeIndex === i;
+            const isDeemphasized = activeIndex !== null && !isActive;
             return (
-              <div
+              <button
                 key={card.title}
-                onMouseEnter={() => setHoveredIndex(i)}
-                onMouseLeave={() => setHoveredIndex(null)}
-                className={isTopRow ? 'relative z-10' : ''}
+                onClick={() => setActiveIndex(i)}
+                className="text-left w-full"
               >
                 <Card
                   className={cn(
-                    'transition-all duration-300',
-                    isHovered
-                      ? `${card.bgColor} shadow-card-hover`
+                    'transition-all duration-300 cursor-pointer select-none',
+                    isActive
+                      ? `${card.bgColor} shadow-card-hover ring-2 ring-offset-2`
                       : isDeemphasized
                         ? 'opacity-40'
-                        : 'hover:shadow-card-hover'
+                        : 'hover:shadow-card-hover hover:scale-[1.01]'
                   )}
                 >
                   <CardHeader className="pb-3">
@@ -160,81 +173,87 @@ export default function ShowSection() {
                   </CardHeader>
                   <CardContent>
                     <CardDescription>{card.content}</CardDescription>
+                    <p className={cn('text-xs mt-3 font-medium', card.color)}>
+                      En savoir plus →
+                    </p>
                   </CardContent>
                 </Card>
-                {/* Top row: details overlay downward on top of bottom cards */}
-                {isTopRow && (
-                  <AnimatePresence initial={false}>
-                    {isHovered && (
-                      <motion.div
-                        key="details-overlay"
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{
-                          height: { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
-                          opacity: { duration: 0.25 },
-                        }}
-                        className="absolute left-0 right-0 top-full z-20 overflow-hidden"
-                      >
-                        <div className="rounded-b-xl border border-t-0 border-black/6 shadow-card p-5 flex flex-col gap-3 bg-surface">
-                          {card.details.map((detail, j) => (
-                            <motion.div
-                              key={j}
-                              initial={{ opacity: 0, x: -8 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: j * 0.07 + 0.1, duration: 0.3, ease: 'easeOut' }}
-                              className="flex items-start gap-3"
-                            >
-                              <div className={`mt-1 w-0.5 self-stretch rounded-full shrink-0 ${card.barColor}`} />
-                              <p className="text-sm text-text-muted leading-relaxed">{detail}</p>
-                            </motion.div>
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                )}
-                {/* Bottom row: details expand inline downward */}
-                {!isTopRow && (
-                  <AnimatePresence initial={false}>
-                    {isHovered && (
-                      <motion.div
-                        key="details-down"
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{
-                          height: { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
-                          opacity: { duration: 0.25 },
-                        }}
-                        className="overflow-hidden"
-                      >
-                        <div className={cn(
-                          'rounded-b-xl border border-t-0 border-black/6 shadow-card p-5 flex flex-col gap-3',
-                          card.bgColor || 'bg-white'
-                        )}>
-                          {card.details.map((detail, j) => (
-                            <motion.div
-                              key={j}
-                              initial={{ opacity: 0, x: -8 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: j * 0.07 + 0.1, duration: 0.3, ease: 'easeOut' }}
-                              className="flex items-start gap-3"
-                            >
-                              <div className={`mt-1 w-0.5 self-stretch rounded-full shrink-0 ${card.barColor}`} />
-                              <p className="text-sm text-text-muted leading-relaxed">{detail}</p>
-                            </motion.div>
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                )}
-              </div>
+              </button>
             );
           })}
         </motion.div>
+
+        {/* Spotlight modal */}
+        <AnimatePresence>
+          {activeCard && (
+            <>
+              {/* Backdrop */}
+              <motion.div
+                key="backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+                onClick={() => setActiveIndex(null)}
+              />
+              {/* Modal */}
+              <motion.div
+                key="modal"
+                initial={{ opacity: 0, scale: 0.92, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 20 }}
+                transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                className="fixed inset-0 z-50 flex items-center justify-center p-6 pointer-events-none"
+              >
+                <div
+                  className={cn(
+                    'pointer-events-auto w-full max-w-lg rounded-2xl shadow-2xl border p-8',
+                    'bg-surface',
+                    activeCard.borderColor
+                  )}
+                >
+                  {/* Header */}
+                  <div className="flex items-start justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      {(() => { const Icon = activeCard.icon; return <Icon size={24} className={activeCard.color} />; })()}
+                      <h3 className="font-display text-xl font-bold text-text-primary">
+                        {activeCard.title}
+                      </h3>
+                    </div>
+                    <button
+                      onClick={() => setActiveIndex(null)}
+                      className="text-text-muted hover:text-text-primary transition-colors ml-4 shrink-0"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+
+                  {/* Summary */}
+                  <p className="text-text-muted text-sm leading-relaxed mb-6 pb-6 border-b border-black/8">
+                    {activeCard.content}
+                  </p>
+
+                  {/* Details */}
+                  <div className="flex flex-col gap-4">
+                    {activeCard.details.map((detail, j) => (
+                      <motion.div
+                        key={j}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: j * 0.08 + 0.1, duration: 0.3, ease: 'easeOut' }}
+                        className="flex items-start gap-3"
+                      >
+                        <div className={`mt-1.5 w-0.5 h-4 rounded-full shrink-0 ${activeCard.barColor}`} />
+                        <p className="text-sm text-text-muted leading-relaxed">{detail}</p>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
         {/* Themes */}
         <motion.div
