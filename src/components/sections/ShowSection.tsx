@@ -177,10 +177,7 @@ export default function ShowSection() {
                         }}
                         className="absolute left-0 right-0 top-full z-20 overflow-hidden"
                       >
-                        <div className={cn(
-                          'rounded-b-xl border border-t-0 border-black/6 shadow-card p-5 flex flex-col gap-3',
-                          card.bgColor || 'bg-white'
-                        )}>
+                        <div className="rounded-b-xl border border-t-0 border-black/6 shadow-card p-5 flex flex-col gap-3 bg-surface">
                           {card.details.map((detail, j) => (
                             <motion.div
                               key={j}
