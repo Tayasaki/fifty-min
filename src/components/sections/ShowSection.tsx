@@ -153,7 +153,7 @@ export default function ShowSection() {
               <div
                 key={card.title}
                 className="relative cursor-pointer"
-                style={{ perspective: '1000px', minHeight: '260px' }}
+                style={{ perspective: '1000px', minHeight: '280px' }}
                 onClick={() => toggleFlip(i)}
               >
                 <motion.div
@@ -191,7 +191,7 @@ export default function ShowSection() {
                   >
                     <Card
                       className={cn(
-                        'h-full select-none overflow-y-auto shadow-card-hover',
+                        'h-full select-none overflow-hidden shadow-card-hover',
                         card.bgSolid,
                         card.borderColor
                       )}
