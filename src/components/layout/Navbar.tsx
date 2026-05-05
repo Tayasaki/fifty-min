@@ -1,21 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import logo from '../../assets/logo.jpg';
+import { cn } from '../../lib/utils';
 
-const navLinks = [
-  { label: 'Accueil', href: '#accueil' },
-  { label: 'Le spectacle', href: '#spectacle' },
-  { label: "L'association", href: '#association' },
-  { label: 'Ateliers', href: '#ateliers' },
-  { label: 'Soutenir', href: '#soutenir' },
-  { label: 'Billetterie', href: '#billetterie' },
-  { label: 'Contact', href: '#contact' },
+interface NavLink {
+  label: string;
+  to: string;
+}
+
+const navLinks: NavLink[] = [
+  { label: 'Accueil', to: '/' },
+  { label: 'Le spectacle', to: '/spectacle' },
+  { label: "L'association", to: '/association' },
+  { label: 'Ateliers', to: '/agenda' },
+  { label: 'Soutenir', to: '/soutenir' },
+  { label: 'Billetterie', to: '/billetterie' },
+  { label: 'Contact', to: '/contact' },
 ];
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -23,15 +32,14 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleNavClick = (href: string) => {
+  const handleNavClick = (link: NavLink) => {
+    const wasOpen = menuOpen;
     setMenuOpen(false);
-    // Wait for the mobile menu close animation (250ms) before scrolling,
-    // otherwise the layout shift from the collapsing menu disrupts the scroll target position.
-    setTimeout(() => {
-      const el = document.querySelector(href);
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
-    }, 300);
+    // Mobile menu close + navigate: small delay so the collapse animation isn't cut.
+    setTimeout(() => navigate(link.to), wasOpen ? 250 : 0);
   };
+
+  const isActive = (link: NavLink) => pathname === link.to;
 
   return (
     <motion.nav
@@ -47,7 +55,7 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Logo */}
         <button
-          onClick={() => handleNavClick('#accueil')}
+          onClick={() => handleNavClick({ label: 'Accueil', to: '/' })}
           className="flex items-center gap-3 group"
         >
           <div className="h-9 w-9 rounded-full bg-white flex items-center justify-center shadow-sm overflow-hidden">
@@ -66,10 +74,15 @@ export default function Navbar() {
         {/* Desktop links */}
         <ul className="hidden lg:flex items-center gap-1">
           {navLinks.map((link) => (
-            <li key={link.href}>
+            <li key={link.to}>
               <button
-                onClick={() => handleNavClick(link.href)}
-                className="px-3 py-2 text-sm text-text-muted hover:text-teal transition-colors duration-200 rounded-lg hover:bg-teal/6"
+                onClick={() => handleNavClick(link)}
+                className={cn(
+                  'px-3 py-2 text-sm transition-colors duration-200 rounded-lg hover:bg-teal/6',
+                  isActive(link)
+                    ? 'text-teal font-medium'
+                    : 'text-text-muted hover:text-teal'
+                )}
               >
                 {link.label}
               </button>
@@ -99,10 +112,15 @@ export default function Navbar() {
           >
             <ul className="px-6 py-4 flex flex-col gap-1">
               {navLinks.map((link) => (
-                <li key={link.href}>
+                <li key={link.to}>
                   <button
-                    onClick={() => handleNavClick(link.href)}
-                    className="w-full text-left px-3 py-2.5 text-sm text-text-muted hover:text-teal transition-colors duration-200 rounded-lg hover:bg-teal/6"
+                    onClick={() => handleNavClick(link)}
+                    className={cn(
+                      'w-full text-left px-3 py-2.5 text-sm transition-colors duration-200 rounded-lg hover:bg-teal/6',
+                      isActive(link)
+                        ? 'text-teal font-medium'
+                        : 'text-text-muted hover:text-teal'
+                    )}
                   >
                     {link.label}
                   </button>
