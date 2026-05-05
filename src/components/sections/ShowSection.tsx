@@ -57,9 +57,9 @@ const infoCards: InfoCard[] = [
     bgSolid: 'bg-[#F1F8F6]',
     borderColor: 'border-teal/30',
     details: [
-      "Un processus de création collaboratif qui implique les interprètes tout au long du projet.",
+      "Les interprètes participent activement à la création — pas seulement en répétition.",
       "Chaque comédien·ne est accompagné·e par des coachs en jeu théâtral, chant et danse.",
-      "Le spectacle s'inscrit dans une démarche pédagogique : ateliers de réflexion sur les réseaux sociaux et collaborations avec des institutions éducatives.",
+      "Au-delà de la scène : des ateliers dans les écoles, des discussions ouvertes, pour que 15 minutes devienne aussi un outil de conversation.",
     ],
   },
   {
@@ -74,7 +74,7 @@ const infoCards: InfoCard[] = [
     details: [
       "Six protagonistes principaux : Riley, Sacha, Noah, Morgan, Andy et Camille.",
       "Une dizaine de personnages secondaires : parents, ami·e·s, managers, marques, fans, haters et influenceur·euse·s.",
-      "Une équipe de jeunes interprètes favorisant une forte identification du public.",
+      "De jeunes interprètes — des têtes que le public reconnaît dans ses propres cercles.",
     ],
   },
   {
@@ -89,7 +89,7 @@ const infoCards: InfoCard[] = [
     details: [
       "Un répertoire varié : comédies musicales de Broadway, chansons de l'univers Disney et titres contemporains.",
       "Les titres sont adaptés et traduits en français pour servir le propos dramaturgique et émotionnel.",
-      "Un choix musical accessible, dynamique et ancré dans les codes culturels contemporains.",
+      "Des titres que vous connaissez — revisités pour servir l'histoire.",
     ],
   },
   {
@@ -234,7 +234,7 @@ export default function ShowSection() {
             Thèmes abordés
           </h3>
           <p className="text-text-muted text-sm mb-6">
-            Un outil artistique et pédagogique ancré dans les réalités contemporaines.
+            Les questions que 15 minutes pose sur scène.
           </p>
           <div className="flex flex-wrap gap-2">
             {themes.map((theme, i) => (

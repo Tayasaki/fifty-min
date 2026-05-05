@@ -42,7 +42,7 @@ const missions: Mission[] = [
     color: 'text-gold',
     barColor: 'bg-gold/40',
     details: [
-      "Aborder des thèmes de société — réseaux sociaux, identité numérique, célébrité éphémère — à travers un prisme artistique et accessible.",
+      "Mettre des mots sur ce qu'on vit avec les réseaux sociaux, l'identité numérique, la célébrité éphémère — grâce à l'art.",
       "Proposer des ateliers de discussion et de réflexion en complément des représentations.",
       "Sensibiliser le public jeune et adulte aux réalités du monde numérique.",
     ],
@@ -56,7 +56,7 @@ const missions: Mission[] = [
     details: [
       "Développer des collaborations avec des institutions éducatives, culturelles et des partenaires engagé·e·s.",
       "Faire de la comédie musicale un outil de dialogue entre générations et milieux différents.",
-      "S'inscrire dans une démarche de transmission durable, au-delà de chaque projet.",
+      "Transmettre quelque chose qui dépasse la durée d'une représentation.",
     ],
   },
 ];
@@ -65,7 +65,7 @@ export default function AssociationSection() {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   return (
-    <section id="association" className="bg-surface-2 py-24">
+    <section id="association" className="bg-background py-24">
       <div className="max-w-6xl mx-auto px-6">
         {/*
           items-start: both columns anchored at the top of their grid area.
@@ -112,8 +112,8 @@ export default function AssociationSection() {
               <p>
                 L'association défend une approche{' '}
                 <span className="text-teal font-medium">inclusive, accessible et engagée</span> de la culture,
-                en proposant des formes artistiques populaires comme la comédie musicale en
-                tant qu'outils de dialogue et d'expression collective.
+                en choisissant des formes artistiques que tout le monde peut s'approprier —
+                comme la comédie musicale.
               </p>
             </motion.div>
           </div>
