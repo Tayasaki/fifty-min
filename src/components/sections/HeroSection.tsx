@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { ChevronDown } from 'lucide-react';
 
@@ -24,11 +25,11 @@ const itemVariants = {
 };
 
 export default function HeroSection() {
-  const scrollToShow = () => {
-    document.querySelector('#spectacle')?.scrollIntoView({ behavior: 'smooth' });
-  };
-  const scrollToSupport = () => {
-    document.querySelector('#soutenir')?.scrollIntoView({ behavior: 'smooth' });
+  const navigate = useNavigate();
+  const goToShow = () => navigate('/spectacle');
+  const goToSupport = () => navigate('/soutenir');
+  const scrollToTeasers = () => {
+    document.querySelector('#teasers')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
@@ -114,10 +115,10 @@ export default function HeroSection() {
           variants={itemVariants}
           className="flex flex-col sm:flex-row gap-4 justify-center"
         >
-          <Button size="lg" onClick={scrollToShow}>
+          <Button size="lg" onClick={goToShow}>
             Découvrir le spectacle
           </Button>
-          <Button size="lg" variant="outline" onClick={scrollToSupport}>
+          <Button size="lg" variant="outline" onClick={goToSupport}>
             Nous soutenir
           </Button>
         </motion.div>
@@ -125,7 +126,7 @@ export default function HeroSection() {
 
       {/* Scroll indicator */}
       <motion.button
-        onClick={scrollToShow}
+        onClick={scrollToTeasers}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 2 }}
