@@ -33,7 +33,7 @@ export default function TicketingSection() {
   return (
     <section
       id="billetterie"
-      className="py-24 bg-surface-2"
+      className="py-24 bg-background"
     >
       <div className="max-w-6xl mx-auto px-6">
         {/* Header */}
