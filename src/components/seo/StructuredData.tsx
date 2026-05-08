@@ -26,14 +26,14 @@ const THEATER_EVENT = {
   url: SITE_URL,
   performer: ORGANIZATION_REF,
   organizer: ORGANIZATION_REF,
-  // startDate, location, and offers will be updated when the association confirms dates and venue (see ADR-001 blind spots)
-  startDate: 'TBD',
+  startDate: '2027-02-01',
+  endDate: '2027-02-28',
   location: {
     '@type': 'Place',
-    name: 'TBD',
+    name: 'Suisse romande',
     address: {
       '@type': 'PostalAddress',
-      addressLocality: 'TBD',
+      addressRegion: 'Suisse romande',
       addressCountry: 'CH',
     },
   },
