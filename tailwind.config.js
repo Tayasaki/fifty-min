@@ -7,10 +7,11 @@ module.exports = {
         surface: '#FFFFFF',
         'surface-2': '#F4EEF7',
         teal: '#7BB7AA',
+        'teal-deep': '#3F7165',
         purple: '#B8A0BB',
         gold: '#C9973E',
         'text-primary': '#1F1F2E',
-        'text-muted': '#6B7280',
+        'text-muted': '#525968',
       },
       fontFamily: {
         display: ['"Playfair Display"', 'Georgia', 'serif'],

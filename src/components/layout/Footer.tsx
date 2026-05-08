@@ -16,16 +16,16 @@ export default function Footer() {
             />
           </div>
           <div>
-            <p className="font-display font-bold text-teal text-sm">Mélange de Genres</p>
+            <p className="font-display font-bold text-teal-deep text-sm">Mélange de Genres</p>
             <p className="text-text-muted text-xs">1226 Thônex, Suisse</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 text-text-muted text-sm">
-          <Mail size={14} className="text-teal" />
+          <Mail size={14} className="text-teal-deep" />
           <a
             href="mailto:infomelangesdegenres@gmail.com"
-            className="hover:text-teal transition-colors"
+            className="hover:text-teal-deep transition-colors"
           >
             infomelangesdegenres@gmail.com
           </a>
@@ -34,7 +34,7 @@ export default function Footer() {
         <p className="text-text-muted text-xs text-center md:text-right">
           © 2026 Mélange de Genres — Tous droits réservés
           <br />
-          <span className="text-teal/70">15 minutes · Saison 2026–2027</span>
+          <span className="text-teal-deep/80">15 minutes · Saison 2026–2027</span>
         </p>
       </div>
     </footer>

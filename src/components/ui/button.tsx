@@ -9,9 +9,9 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          'bg-teal text-white hover:bg-teal/90 shadow-teal-glow-sm hover:shadow-teal-glow',
+          'bg-teal-deep text-white hover:bg-teal-deep/90 shadow-teal-glow-sm hover:shadow-teal-glow',
         outline:
-          'border border-teal/50 text-teal bg-transparent hover:bg-teal/8 hover:border-teal',
+          'border border-teal-deep/60 text-teal-deep bg-transparent hover:bg-teal-deep/8 hover:border-teal-deep',
         ghost:
           'text-text-muted hover:text-text-primary hover:bg-black/5',
         gold:
