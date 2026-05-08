@@ -27,7 +27,7 @@ const THEATER_EVENT = {
   performer: ORGANIZATION_REF,
   organizer: ORGANIZATION_REF,
   startDate: '2027-02-01',
-  endDate: '2027-02-28',
+  endDate: '2027-04-30',
   location: {
     '@type': 'Place',
     name: 'Suisse romande',
