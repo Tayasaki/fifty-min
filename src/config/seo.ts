@@ -1,5 +1,5 @@
 export const SITE_NAME = 'Mélange de Genres';
-export const SITE_URL = 'https://melangedegenres.vercel.app';
+export const SITE_URL = 'https://melangedegenres.ch';
 export const DEFAULT_OG_IMAGE = '/og-image.jpg';
 export const DEFAULT_TWITTER_CARD = 'summary_large_image';
 
