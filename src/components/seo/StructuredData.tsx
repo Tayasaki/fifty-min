@@ -47,6 +47,65 @@ const THEATER_EVENT = {
   eventStatus: 'https://schema.org/EventScheduled',
 };
 
+interface EventLDProps {
+  name: string;
+  description: string;
+  startDate: string;
+  locationName: string;
+  locationDetail?: string;
+  url?: string;
+}
+
+export function EventLD({ name, description, startDate, locationName, locationDetail, url }: EventLDProps) {
+  const data = {
+    '@context': 'https://schema.org',
+    '@type': 'Event',
+    name,
+    description,
+    startDate,
+    location: {
+      '@type': 'Place',
+      name: locationDetail ? `${locationName} — ${locationDetail}` : locationName,
+      address: {
+        '@type': 'PostalAddress',
+        addressCountry: 'CH',
+      },
+    },
+    organizer: ORGANIZATION_REF,
+    ...(url && { url }),
+    inLanguage: 'fr',
+    eventStatus: 'https://schema.org/EventScheduled',
+  };
+  return (
+    <Helmet>
+      <script type="application/ld+json">{JSON.stringify(data)}</script>
+    </Helmet>
+  );
+}
+
+interface BreadcrumbItem {
+  name: string;
+  url: string;
+}
+
+export function BreadcrumbLD({ items }: { items: BreadcrumbItem[] }) {
+  const data = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((item, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: item.name,
+      item: item.url,
+    })),
+  };
+  return (
+    <Helmet>
+      <script type="application/ld+json">{JSON.stringify(data)}</script>
+    </Helmet>
+  );
+}
+
 export function OrganizationLD() {
   return (
     <Helmet>
