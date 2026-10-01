@@ -36,6 +36,7 @@ function App() {
         </main>
         <Footer />
         <Analytics />
+	<SpeedInsights />
       </div>
     </BrowserRouter>
   );
