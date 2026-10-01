@@ -9,6 +9,7 @@
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^13.5.0",
     "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",
@@ -32,15 +33,28 @@
     "eject": "react-scripts eject"
   },
   "reactSnap": {
-    "include": ["/", "/spectacle", "/association", "/agenda", "/billetterie", "/soutenir", "/contact"],
+    "include": [
+      "/",
+      "/spectacle",
+      "/association",
+      "/agenda",
+      "/billetterie",
+      "/soutenir",
+      "/contact"
+    ],
     "inlineCss": false,
     "removeStyleTags": false,
     "minifyHtml": false,
     "skipThirdPartyRequests": true,
-    "puppeteerArgs": ["--no-sandbox", "--disable-setuid-sandbox"]
+    "puppeteerArgs": [
+      "--no-sandbox",
+      "--disable-setuid-sandbox"
+    ]
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["puppeteer"]
+    "onlyBuiltDependencies": [
+      "puppeteer"
+    ]
   },
   "eslintConfig": {
     "extends": [
