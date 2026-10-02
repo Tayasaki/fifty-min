@@ -37,7 +37,7 @@ export const PAGE_META: Record<string, PageMeta> = {
   billetterie: {
     title: 'Billetterie',
     description:
-      "Achetez vos billets pour « 15 minutes », la comédie musicale originale de Mélange de Genres. Places limitées — réservez en ligne.",
+      "Réservez gratuitement vos places pour « 15 minutes », la comédie musicale originale de Mélange de Genres, au Monique et à la Julienne. Places limitées.",
     path: '/billetterie',
   },
   soutenir: {
