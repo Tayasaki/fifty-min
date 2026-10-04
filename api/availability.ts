@@ -1,8 +1,9 @@
 import { SHOWS } from '../src/config/shows';
-import { keys, redis } from './_lib/redis';
+import { keys, redis, releaseExpired } from './_lib/redis';
 
 export async function GET(): Promise<Response> {
   try {
+    await releaseExpired();
     const booked = await redis<(string | null)[]>('MGET', ...SHOWS.map((s) => keys.booked(s.id)));
     const availability = Object.fromEntries(
       SHOWS.map((s, i) => [s.id, Math.max(0, s.capacity - Number(booked[i] || 0))])

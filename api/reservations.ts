@@ -2,7 +2,7 @@
 // "Authorization: Bearer <ADMIN_TOKEN>" (or ?token=<ADMIN_TOKEN>) → CSV list for the door.
 
 import { SHOWS, getShow } from '../src/config/shows';
-import { ReservationRecord, keys, redis } from './_lib/redis';
+import { ReservationRecord, keys, redis, releaseExpired } from './_lib/redis';
 
 function csvCell(value: string | number): string {
   const s = String(value);
@@ -21,13 +21,19 @@ export async function GET(request: Request): Promise<Response> {
   const shows = showId ? [getShow(showId)].filter(Boolean) : SHOWS;
   if (shows.length === 0) return Response.json({ error: 'Représentation inconnue' }, { status: 404 });
 
-  const rows: string[] = ['date;reservation;nom;email;places;reserve_le'];
+  await releaseExpired();
+
+  const rows: string[] = ['date;reservation;statut;nom;email;places;reserve_le'];
   for (const show of shows) {
     if (!show) continue;
-    const records = await redis<string[]>('LRANGE', keys.reservations(show.id), 0, -1);
+    const ids = await redis<string[]>('LRANGE', keys.reservations(show.id), 0, -1);
+    if (ids.length === 0) continue;
+    const records = await redis<(string | null)[]>('MGET', ...ids.map(keys.reservation));
     for (const raw of records) {
+      if (!raw) continue;
       const r = JSON.parse(raw) as ReservationRecord;
-      rows.push([show.label, r.id, r.name, r.email, r.quantity, r.createdAt].map(csvCell).join(';'));
+      const status = r.status === 'confirmed' ? 'confirmée' : 'en attente';
+      rows.push([show.label, r.id, status, r.name, r.email, r.quantity, r.createdAt].map(csvCell).join(';'));
     }
   }
 

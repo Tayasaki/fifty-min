@@ -5,12 +5,18 @@
 - Dates, salles et capacités : `src/config/shows.ts` (partagé front + API).
 - `GET /api/availability` → places restantes par date.
 - `POST /api/reserve` → `{ showId, name, email, quantity }`. Vérifie atomiquement (script Lua Redis) la capacité
-  et la limite de 4 places par email **et par date**, enregistre, puis envoie l'email de confirmation.
-- Annulation : l'email de confirmation contient un lien `/billetterie?annuler=<id>&token=<secret>`. La page affiche
-  la réservation et demande de confirmer (le lien seul n'annule rien, car les antivirus des messageries ouvrent les liens).
-  `GET /api/cancel` lit la réservation, `POST /api/cancel` libère les places et envoie un email d'annulation.
+  et la limite de 4 places par email **et par date**, bloque les places (statut « en attente »), puis envoie un
+  email avec un lien de confirmation. Si l'email ne peut pas partir, les places sont libérées immédiatement.
+- Confirmation : lien `/billetterie?confirmer=<id>&token=<secret>`, à cliquer dans les 48h
+  (`CONFIRMATION_DELAY_HOURS`, et au plus tard au début du spectacle). Sinon les places sont libérées
+  automatiquement (au prochain appel de l'API, pas besoin de cron). Une fois confirmée, un email récapitulatif est
+  envoyé avec un lien Google Agenda, un fichier `.ics` joint et le lien d'annulation.
+- Annulation : lien `/billetterie?annuler=<id>&token=<secret>`.
+- Les liens ouvrent une page qui demande de cliquer sur un bouton : le lien seul ne fait rien, car les antivirus des
+  messageries ouvrent les liens automatiquement. `GET /api/reservation` lit la réservation,
+  `POST /api/reservation { action: 'confirm' | 'cancel', id, token }` agit.
 - `GET /api/reservations?show=<showId>&token=<ADMIN_TOKEN>` → export CSV des réservations (liste pour l'accueil).
-  Sans `show`, exporte toutes les dates.
+  Sans `show`, exporte toutes les dates. Colonne `statut` : confirmée / en attente.
 - La page affiche le formulaire uniquement si `REACT_APP_SHOW_TICKETING=true`.
 
 ## Mise en service (Vercel)
@@ -39,4 +45,4 @@
 
 Changer `capacity` dans `src/config/shows.ts` et redéployer. Les réservations déjà faites sont conservées
 (le compteur est dans Redis). Les spectateur·ice·s annulent via le lien de leur email. Les clés Redis sont
-`show:<id>:booked`, `show:<id>:emails`, `show:<id>:reservations` et `reservation:<id>`.
+`show:<id>:booked`, `show:<id>:emails`, `show:<id>:reservations`, `reservation:<id>` et `reservations:pending`.

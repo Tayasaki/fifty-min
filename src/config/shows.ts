@@ -14,12 +14,25 @@ export interface Show {
   venueId: string;
   /** ISO date-time, Europe/Zurich local time */
   date: string;
+  /** Doors opening time, as displayed */
+  doorsOpen: string;
   label: string;
   /** Number of seats that can be reserved */
   capacity: number;
 }
 
 export const MAX_TICKETS_PER_EMAIL = 4;
+
+/** Unconfirmed reservations are released after this delay (or at show start, whichever comes first). */
+export const CONFIRMATION_DELAY_HOURS = 48;
+
+/** 2h45 with intermission (used for calendar events). */
+export const SHOW_DURATION_MINUTES = 165;
+
+/** Show start as an absolute date. All performances are before the switch to summer time (CET, UTC+1). */
+export function showStart(show: Show): Date {
+  return new Date(`${show.date}:00+01:00`);
+}
 
 export const VENUES: Venue[] = [
   {
@@ -38,14 +51,14 @@ export const VENUES: Venue[] = [
   },
 ];
 
-// TODO: confirm Le Monique capacity (120 or 100 seated?) and start times with the venues.
+// TODO: confirm Le Monique capacity with the venue (100 for now, they may have 120 seats).
 export const SHOWS: Show[] = [
-  { id: '2027-02-20-monique', venueId: 'monique', date: '2027-02-20T20:30', label: 'Samedi 20 février 2027 — 20h30', capacity: 120 },
-  { id: '2027-02-21-monique', venueId: 'monique', date: '2027-02-21T20:30', label: 'Dimanche 21 février 2027 — 20h30', capacity: 120 },
-  { id: '2027-03-11-julienne', venueId: 'julienne', date: '2027-03-11T20:30', label: 'Jeudi 11 mars 2027 — 20h30', capacity: 100 },
-  { id: '2027-03-12-julienne', venueId: 'julienne', date: '2027-03-12T20:30', label: 'Vendredi 12 mars 2027 — 20h30', capacity: 100 },
-  { id: '2027-03-13-julienne', venueId: 'julienne', date: '2027-03-13T20:30', label: 'Samedi 13 mars 2027 — 20h30', capacity: 100 },
-  { id: '2027-03-14-julienne', venueId: 'julienne', date: '2027-03-14T20:30', label: 'Dimanche 14 mars 2027 — 20h30', capacity: 100 },
+  { id: '2027-02-20-monique', venueId: 'monique', date: '2027-02-20T19:00', doorsOpen: '18h30', label: 'Samedi 20 février 2027 — 19h', capacity: 100 },
+  { id: '2027-02-21-monique', venueId: 'monique', date: '2027-02-21T19:00', doorsOpen: '18h30', label: 'Dimanche 21 février 2027 — 19h', capacity: 100 },
+  { id: '2027-03-11-julienne', venueId: 'julienne', date: '2027-03-11T19:00', doorsOpen: '18h30', label: 'Jeudi 11 mars 2027 — 19h', capacity: 100 },
+  { id: '2027-03-12-julienne', venueId: 'julienne', date: '2027-03-12T19:00', doorsOpen: '18h30', label: 'Vendredi 12 mars 2027 — 19h', capacity: 100 },
+  { id: '2027-03-13-julienne', venueId: 'julienne', date: '2027-03-13T19:00', doorsOpen: '18h30', label: 'Samedi 13 mars 2027 — 19h', capacity: 100 },
+  { id: '2027-03-14-julienne', venueId: 'julienne', date: '2027-03-14T17:00', doorsOpen: '16h30', label: 'Dimanche 14 mars 2027 — 17h', capacity: 100 },
 ];
 
 export function getShow(id: string): Show | undefined {

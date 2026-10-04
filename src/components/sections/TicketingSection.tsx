@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from '../ui/button';
-import { MapPin, Clock, Ticket, CheckCircle2, AlertCircle, Accessibility } from 'lucide-react';
+import { MapPin, Clock, Ticket, MailCheck, AlertCircle, Accessibility } from 'lucide-react';
 import { MAX_TICKETS_PER_EMAIL, SHOWS, VENUES, type Show, getVenue } from '../../config/shows';
 import { cn } from '../../lib/utils';
+import { suggestEmail } from '../../lib/emailTypos';
 
 const showTicketing = process.env.REACT_APP_SHOW_TICKETING === 'true';
 
@@ -13,7 +14,22 @@ type SubmitState =
   | { kind: 'idle' }
   | { kind: 'loading' }
   | { kind: 'error'; message: string }
-  | { kind: 'success'; reservationId: string; emailSent: boolean; email: string; quantity: number; show: Show };
+  | { kind: 'success'; reservationId: string; expiresAt: number; email: string; quantity: number; show: Show };
+
+function sameEmail(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+function formatDeadline(ms: number): string {
+  return new Date(ms).toLocaleString('fr-CH', {
+    timeZone: 'Europe/Zurich',
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 
 function remainingLabel(remaining: number | undefined): string {
   if (remaining === undefined) return '';
@@ -33,6 +49,9 @@ function ReservationForm({
 }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [emailConfirm, setEmailConfirm] = useState('');
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [confirmTouched, setConfirmTouched] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [website, setWebsite] = useState('');
   const [state, setState] = useState<SubmitState>({ kind: 'idle' });
@@ -43,8 +62,15 @@ function ReservationForm({
     if (quantity > maxQuantity) setQuantity(maxQuantity);
   }, [quantity, maxQuantity]);
 
+  const suggestion = emailTouched ? suggestEmail(email.trim()) : null;
+  const emailMismatch = confirmTouched && emailConfirm !== '' && !sameEmail(email, emailConfirm);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!sameEmail(email, emailConfirm)) {
+      setConfirmTouched(true);
+      return;
+    }
     setState({ kind: 'loading' });
     try {
       const res = await fetch('/api/reserve', {
@@ -57,7 +83,7 @@ function ReservationForm({
         setState({ kind: 'error', message: data.error || 'Une erreur est survenue.' });
         return;
       }
-      onSuccess({ kind: 'success', reservationId: data.reservationId, emailSent: data.emailSent, email, quantity, show });
+      onSuccess({ kind: 'success', reservationId: data.reservationId, expiresAt: data.expiresAt, email, quantity, show });
     } catch {
       setState({ kind: 'error', message: 'Impossible de contacter le serveur. Merci de réessayer.' });
     }
@@ -71,6 +97,7 @@ function ReservationForm({
       <div>
         <p className="text-text-muted text-xs uppercase tracking-wide mb-1">{venue?.name}</p>
         <h3 className="font-display text-xl font-bold text-text-primary">{show.label}</h3>
+        <p className="text-text-muted text-sm mt-1">Ouverture des portes {show.doorsOpen}</p>
       </div>
 
       <label className="flex flex-col gap-1.5 text-sm text-text-primary">
@@ -80,7 +107,46 @@ function ReservationForm({
 
       <label className="flex flex-col gap-1.5 text-sm text-text-primary">
         Email
-        <input required type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
+        <input
+          required
+          type="email"
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          onBlur={() => setEmailTouched(true)}
+          className={inputClass}
+        />
+        {suggestion && (
+          <span className="text-xs text-text-muted">
+            Vouliez-vous dire{' '}
+            <button
+              type="button"
+              onClick={() => {
+                if (sameEmail(emailConfirm, email)) setEmailConfirm(suggestion);
+                setEmail(suggestion);
+              }}
+              className="text-teal-deep font-medium underline underline-offset-2"
+            >
+              {suggestion}
+            </button>{' '}
+            ?
+          </span>
+        )}
+      </label>
+
+      <label className="flex flex-col gap-1.5 text-sm text-text-primary">
+        Confirmez votre email
+        <input
+          required
+          type="email"
+          autoComplete="email"
+          value={emailConfirm}
+          onChange={(e) => setEmailConfirm(e.target.value)}
+          onBlur={() => setConfirmTouched(true)}
+          aria-invalid={emailMismatch}
+          className={cn(inputClass, emailMismatch && 'border-red-400 focus:ring-red-200')}
+        />
+        {emailMismatch && <span className="text-xs text-red-700">Les deux adresses email ne correspondent pas.</span>}
       </label>
 
       <label className="flex flex-col gap-1.5 text-sm text-text-primary">
@@ -162,8 +228,8 @@ export default function TicketingSection() {
           <div className="w-16 h-1 rounded-full bg-purple mx-auto mt-4" />
           {showTicketing && (
             <p className="section-subtitle max-w-xl mx-auto mt-6">
-              L'entrée est gratuite, mais la réservation est obligatoire. Choisissez une date, indiquez votre email et
-              recevez votre confirmation.
+              L'entrée est gratuite, mais la réservation est obligatoire. Choisissez une date, indiquez votre email, puis
+              confirmez la réservation grâce au lien reçu par email.
             </p>
           )}
         </motion.div>
@@ -240,17 +306,16 @@ export default function TicketingSection() {
                     exit={{ opacity: 0 }}
                     className="bg-white rounded-2xl p-8 shadow-card border border-teal/30 text-center flex flex-col items-center gap-3"
                   >
-                    <CheckCircle2 size={40} className="text-teal" />
-                    <h3 className="font-display text-2xl font-bold text-text-primary">Réservation confirmée !</h3>
+                    <MailCheck size={40} className="text-teal" />
+                    <h3 className="font-display text-2xl font-bold text-text-primary">Plus qu'une étape !</h3>
                     <p className="text-text-muted text-sm leading-relaxed">
-                      {success.quantity} place{success.quantity > 1 ? 's' : ''} pour le {success.show.label.toLowerCase()}.
-                      <br />
-                      Numéro de réservation : <strong className="text-text-primary">{success.reservationId}</strong>
+                      {success.quantity} place{success.quantity > 1 ? 's' : ''} pour le {success.show.label.toLowerCase()}{' '}
+                      {success.quantity > 1 ? 'vous sont réservées' : 'vous est réservée'}.
                     </p>
-                    <p className="text-text-muted text-sm">
-                      {success.emailSent
-                        ? `Un email de confirmation a été envoyé à ${success.email}.`
-                        : "Votre réservation est enregistrée, mais l'email de confirmation n'a pas pu être envoyé. Notez votre numéro de réservation."}
+                    <p className="text-text-muted text-sm leading-relaxed">
+                      Un email vient d'être envoyé à <strong className="text-text-primary">{success.email}</strong>.
+                      Cliquez sur le lien qu'il contient <strong className="text-text-primary">avant le {formatDeadline(success.expiresAt)}</strong>{' '}
+                      pour confirmer votre réservation, sinon les places seront libérées. Pensez à vérifier vos spams.
                     </p>
                     <Button variant="outline" className="rounded-full mt-2" onClick={() => setSuccess(null)}>
                       Nouvelle réservation
