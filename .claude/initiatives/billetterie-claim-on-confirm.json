@@ -2,22 +2,26 @@
   "version": "2.0",
   "name": "billetterie-claim-on-confirm",
   "status": "in_progress",
-  "currentMilestone": "M1",
-  "currentPhase": "review",
-  "lastUpdated": "2026-10-27T13:46:42Z",
+  "currentMilestone": "M2",
+  "currentPhase": "plan",
+  "lastUpdated": "2026-10-27T13:57:34Z",
   "progress": {
-    "M1": "failed"
+    "M1": "completed"
   },
   "milestones": {
-    "M1": {
-      "headSha": "9afe09759c7e60aba7f838e7b8eff3def4e4d194"
-    }
+    "M1": {}
   },
   "execConfig": {
     "branchModel": "shared",
     "sharedBranch": "initiative/billetterie-claim-on-confirm",
     "pinnedAt": "2026-10-27T13:10:00Z"
   },
-  "checkpoints": [],
-  "nextAction": "Resume M1 at review once the host load drops: /x-initiative continue (resource gate was saturated for 600s; M1 implement is committed at 9afe097)"
+  "checkpoints": [
+    {
+      "milestone": "M1",
+      "completedAt": "2026-10-27T13:57:34Z",
+      "notes": "Test harness and pure modules: 184/184 tests, review approved (0 critical, 0 high)"
+    }
+  ],
+  "nextAction": "Plan and implement M2: Redis claim/release lifecycle and send quota (fix canonicalEmail +a@x.com first)"
 }
