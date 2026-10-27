@@ -2,14 +2,17 @@
   "version": "2.0",
   "name": "billetterie-claim-on-confirm",
   "status": "in_progress",
-  "currentMilestone": "M2",
+  "currentMilestone": "M3",
   "currentPhase": "plan",
-  "lastUpdated": "2026-10-27T13:57:34Z",
+  "lastUpdated": "2026-10-27T14:20:52Z",
   "progress": {
-    "M1": "completed"
+    "M1": "completed",
+    "M2": "completed"
   },
   "milestones": {
-    "M1": {}
+    "M1": {
+      "baseSha": "7ecd0e889cdc8d17fdd0c704b8ddb3bf560655a1"
+    }
   },
   "execConfig": {
     "branchModel": "shared",
@@ -21,7 +24,12 @@
       "milestone": "M1",
       "completedAt": "2026-10-27T13:57:34Z",
       "notes": "Test harness and pure modules: 184/184 tests, review approved (0 critical, 0 high)"
+    },
+    {
+      "milestone": "M2",
+      "completedAt": "2026-10-27T14:20:52Z",
+      "notes": "Redis lifecycle and send quota: 274/274 tests, 20/20 mutants killed, review approved (0 critical, 0 high)"
     }
   ],
-  "nextAction": "Plan and implement M2: Redis claim/release lifecycle and send quota (fix canonicalEmail +a@x.com first)"
+  "nextAction": "Plan and implement M3: API flow, email and admin hardening (see outcomes.md M2 constraints)"
 }
