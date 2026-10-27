@@ -253,18 +253,14 @@ export default function TicketingSection() {
           <p className="text-purple text-sm font-medium tracking-widest uppercase mb-3">Réservations</p>
           <h2 className="section-title">Billetterie</h2>
           <div className="w-16 h-1 rounded-full bg-purple mx-auto mt-4" />
-          {showTicketing && (
-            <p className="section-subtitle max-w-xl mx-auto mt-6">
-              L'entrée est libre et la réservation recommandée. Choisissez une date, indiquez votre email, puis
-              confirmez la réservation grâce au lien reçu par email.
-            </p>
-          )}
         </motion.div>
 
         {showTicketing ? (
           <>
+            <ReservationsCountdown open />
+
             {/* Venue cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mt-8">
               {VENUES.map((venue, i) => (
                 <motion.div
                   key={venue.id}
@@ -275,18 +271,20 @@ export default function TicketingSection() {
                   className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-card flex flex-col border border-black/6 overflow-hidden"
                 >
                   <VenueDateBand venueId={venue.id} />
-                  <div className="p-8 flex flex-col gap-6">
+                  <div className="p-6 flex flex-col gap-5">
                   <div>
-                    <div className="flex items-start gap-2 mb-1">
-                      <MapPin size={15} className="text-text-muted mt-0.5 shrink-0" />
-                      <span className="text-text-muted text-xs uppercase tracking-wide">{venue.location}</span>
-                    </div>
-                    <h3 className="font-display text-xl font-bold text-text-primary uppercase leading-snug">{venue.name}</h3>
-                    <p className="text-text-muted text-sm mt-2">{venue.address}</p>
+                    <h3 className="font-semibold uppercase tracking-wide text-sm text-text-primary">
+                      {venue.name} · {venue.location}
+                    </h3>
+                    <p className="flex items-start gap-1.5 text-text-muted text-sm mt-2">
+                      <MapPin size={14} className="mt-0.5 shrink-0" />
+                      {venue.address}
+                    </p>
                     <p className="flex items-center gap-1.5 text-teal-deep text-xs mt-1">
                       <Accessibility size={13} className="shrink-0" />
                       {venue.accessibility}
                     </p>
+                    <div className="h-1 w-20 bg-[#9497AE] rounded mt-4" />
                   </div>
 
                   <ul className="flex flex-col gap-2">

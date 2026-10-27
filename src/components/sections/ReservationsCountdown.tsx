@@ -25,13 +25,15 @@ function remainingParts(ms: number) {
   };
 }
 
-export default function ReservationsCountdown() {
+/** Poster-styled banner: countdown while ticketing is closed, invitation once it is open. */
+export default function ReservationsCountdown({ open = false }: { open?: boolean }) {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
+    if (open) return;
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
-  }, []);
+  }, [open]);
 
   const parts = remainingParts(RESERVATIONS_OPEN_AT.getTime() - now);
 
@@ -44,17 +46,29 @@ export default function ReservationsCountdown() {
       className="relative overflow-hidden rounded-2xl bg-[#2E2C40] text-white grid md:grid-cols-[1fr_16rem] items-stretch max-w-4xl mx-auto"
     >
       <div className="p-8 md:p-10 text-center md:text-left">
-        <p className="uppercase tracking-[0.2em] text-white/70 text-sm mb-2">Réservations ouvertes dès le</p>
-        <p className="text-3xl md:text-4xl font-bold mb-6">15 novembre 2026</p>
+        {open ? (
+          <>
+            <p className="uppercase tracking-[0.2em] text-white/70 text-sm mb-2">Billetterie</p>
+            <p className="text-3xl md:text-4xl font-bold mb-4">Réservations ouvertes</p>
+            <p className="text-white/80 text-sm md:text-base leading-relaxed mb-6 max-w-md mx-auto md:mx-0">
+              Choisissez une date ci-dessous, indiquez votre email, puis confirmez grâce au lien reçu par email.
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="uppercase tracking-[0.2em] text-white/70 text-sm mb-2">Réservations ouvertes dès le</p>
+            <p className="text-3xl md:text-4xl font-bold mb-6">15 novembre 2026</p>
 
-        <div className="flex gap-2 sm:gap-3 mb-6 justify-center md:justify-start">
-          {Object.entries(parts).map(([label, value]) => (
-            <div key={label} className="bg-white/10 rounded-lg w-16 sm:w-[4.5rem] py-2 text-center">
-              <div className="text-2xl font-bold tabular-nums">{String(value).padStart(2, '0')}</div>
-              <div className="text-[10px] uppercase tracking-widest text-white/60">{label}</div>
+            <div className="flex gap-2 sm:gap-3 mb-6 justify-center md:justify-start">
+              {Object.entries(parts).map(([label, value]) => (
+                <div key={label} className="bg-white/10 rounded-lg w-16 sm:w-[4.5rem] py-2 text-center">
+                  <div className="text-2xl font-bold tabular-nums">{String(value).padStart(2, '0')}</div>
+                  <div className="text-[10px] uppercase tracking-widest text-white/60">{label}</div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        )}
 
         <p className="text-xs sm:text-sm uppercase tracking-[0.15em] text-white/80 leading-relaxed">
           Entrée libre · Réservation recommandée · Chapeau à la sortie
