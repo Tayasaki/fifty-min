@@ -1,12 +1,9 @@
 import { CONFIRMATION_DELAY_HOURS, MAX_TICKETS_PER_EMAIL, getShow, getVenue, showStart } from '../src/config/shows';
 import { ReservationRecord, releaseAtomic, releaseExpired, reserveAtomic } from './_lib/redis';
 import { sendConfirmationRequest } from './_lib/email';
+import { ERR, error } from './_lib/http';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-
-function error(message: string, status = 400): Response {
-  return Response.json({ error: message }, { status });
-}
 
 function newReservationId(): string {
   return crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
@@ -17,7 +14,7 @@ export async function POST(request: Request): Promise<Response> {
   try {
     body = await request.json();
   } catch {
-    return error('Requête invalide');
+    return error(ERR.INVALID_REQUEST);
   }
 
   // Honeypot: real users never fill this hidden field.
@@ -30,7 +27,7 @@ export async function POST(request: Request): Promise<Response> {
 
   const show = getShow(showId);
   const venue = show && getVenue(show.venueId);
-  if (!show || !venue) return error('Représentation inconnue');
+  if (!show || !venue) return error(ERR.UNKNOWN_SHOW);
   const start = showStart(show).getTime();
   if (Date.now() > start) return error('Les réservations pour cette date sont closes');
   if (name.length < 2 || name.length > 100) return error('Merci d’indiquer votre nom');
@@ -57,7 +54,7 @@ export async function POST(request: Request): Promise<Response> {
     result = await reserveAtomic({ capacity: show.capacity, maxPerEmail: MAX_TICKETS_PER_EMAIL, record });
   } catch (err) {
     console.error('reserve error', err);
-    return error('Service indisponible, merci de réessayer plus tard', 503);
+    return error(ERR.UNAVAILABLE, 503);
   }
 
   if (result.status === -1) {

@@ -29,6 +29,9 @@
     "postbuild": "react-snap || true",
     "postbuild:local": "PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome react-snap || true",
     "test": "react-scripts test",
+    "typecheck:api": "tsc -p api/tsconfig.json --noEmit",
+    "test:api": "node scripts/test-api.mjs",
+    "test:api:redis": "docker run -d --rm --name fifty-min-test-redis -p 127.0.0.1:6390:6379 redis:7-alpine",
     "eject": "react-scripts eject"
   },
   "reactSnap": {
