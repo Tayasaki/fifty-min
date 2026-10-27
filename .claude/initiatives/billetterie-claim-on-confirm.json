@@ -2,13 +2,14 @@
   "version": "2.0",
   "name": "billetterie-claim-on-confirm",
   "status": "in_progress",
-  "currentMilestone": "M4",
+  "currentMilestone": "M5",
   "currentPhase": "plan",
-  "lastUpdated": "2026-10-27T15:30:01Z",
+  "lastUpdated": "2026-10-27T16:42:55Z",
   "progress": {
     "M1": "completed",
     "M2": "completed",
-    "M3": "completed"
+    "M3": "completed",
+    "M4": "completed"
   },
   "milestones": {
     "M1": {
@@ -17,7 +18,9 @@
     "M2": {
       "baseSha": "cea6e4f9ef6b50f223aadb4cbc41ab4a59c34098"
     },
-    "M3": {}
+    "M3": {
+      "baseSha": "6c5b0aeca347366de71af9eef5ac8e666eab6a88"
+    }
   },
   "execConfig": {
     "branchModel": "shared",
@@ -39,7 +42,12 @@
       "milestone": "M3",
       "completedAt": "2026-10-27T15:30:01Z",
       "notes": "API flow, email and admin hardening: 495/495 tests, review approved (0 critical, 0 high); API mediums carried to M4"
+    },
+    {
+      "milestone": "M4",
+      "completedAt": "2026-10-27T16:42:55Z",
+      "notes": "Frontend: 511 API + 308 UI tests, review approved (0 critical, 0 high), browser flows verified"
     }
   ],
-  "nextAction": "Plan and implement M4: frontend (include the M3 API follow-ups from outcomes.md as the first phase)"
+  "nextAction": "Plan and implement M5: config, docs and pre-launch checklist (include the M4 review items from outcomes.md)"
 }
