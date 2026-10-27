@@ -24,6 +24,9 @@
     },
     "M4": {
       "baseSha": "49c7b24c954aa3b600775f525112966f4dfc7c51"
+    },
+    "M5": {
+      "baseSha": "a315c0b7180058184c9fd81afb3b41a4ccda26d6"
     }
   },
   "execConfig": {
