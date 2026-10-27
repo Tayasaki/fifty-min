@@ -3,15 +3,22 @@
   "name": "billetterie-claim-on-confirm",
   "status": "in_progress",
   "currentMilestone": "M3",
-  "currentPhase": "plan",
-  "lastUpdated": "2026-10-27T14:20:52Z",
+  "currentPhase": "review",
+  "lastUpdated": "2026-10-27T15:10:36Z",
   "progress": {
     "M1": "completed",
-    "M2": "completed"
+    "M2": "completed",
+    "M3": "failed"
   },
   "milestones": {
     "M1": {
       "baseSha": "7ecd0e889cdc8d17fdd0c704b8ddb3bf560655a1"
+    },
+    "M2": {
+      "baseSha": "cea6e4f9ef6b50f223aadb4cbc41ab4a59c34098"
+    },
+    "M3": {
+      "headSha": "d5cd5039ca9547b846dbe5cc003f8bbc8eba4003"
     }
   },
   "execConfig": {
@@ -31,5 +38,5 @@
       "notes": "Redis lifecycle and send quota: 274/274 tests, 20/20 mutants killed, review approved (0 critical, 0 high)"
     }
   ],
-  "nextAction": "Plan and implement M3: API flow, email and admin hardening (see outcomes.md M2 constraints)"
+  "nextAction": "Resume M3 at review when host load drops: /x-initiative continue (resource gate saturated for 600s; M3 implement committed at d5cd503, 495/495 tests verified)"
 }
