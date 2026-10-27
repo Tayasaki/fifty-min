@@ -29,6 +29,7 @@
     "postbuild": "react-snap || true",
     "postbuild:local": "PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome react-snap || true",
     "test": "react-scripts test",
+    "test:ui": "react-scripts test --watchAll=false",
     "typecheck:api": "tsc -p api/tsconfig.json --noEmit",
     "test:api": "node scripts/test-api.mjs",
     "test:api:redis": "docker run -d --rm --name fifty-min-test-redis -p 127.0.0.1:6390:6379 redis:7-alpine",
@@ -44,6 +45,17 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": ["puppeteer"]
+  },
+  "jest": {
+    "moduleNameMapper": {
+      "^react-router-dom$": "<rootDir>/node_modules/react-router-dom/dist/index.js",
+      "^react-router/dom$": "<rootDir>/node_modules/.pnpm/node_modules/react-router/dist/development/dom-export.js",
+      "^@vercel/analytics/react$": "<rootDir>/node_modules/@vercel/analytics/dist/react/index.js"
+    },
+    "testMatch": [
+      "<rootDir>/src/**/__tests__/**/*.test.{ts,tsx}",
+      "<rootDir>/src/**/*.test.{ts,tsx}"
+    ]
   },
   "eslintConfig": {
     "extends": [

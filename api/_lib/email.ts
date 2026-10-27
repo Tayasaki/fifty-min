@@ -39,7 +39,6 @@ interface EmailParams {
 }
 
 export interface RequestMailParams {
-  name: string;
   email: string;
   quantity: number;
   show: Show;
@@ -185,14 +184,17 @@ async function classify(res: Response): Promise<'bad-address' | 'provider'> {
   }
 }
 
-/** Step 1: the signed confirmation link. No seat is held until the link is opened and confirmed. */
+/**
+ * Step 1: the signed confirmation link. No seat is held until the link is opened and confirmed.
+ * This is the only mail sent without proof of mailbox ownership, so it carries no text chosen by the requester.
+ */
 export async function sendConfirmRequest(params: RequestMailParams, deps: EmailDeps): Promise<void> {
-  const { name, email, quantity, show, venue, link, linkExpiresAt } = params;
+  const { email, quantity, show, venue, link, linkExpiresAt } = params;
   const places = placesLabel(quantity);
   const deadline = formatDateTime(linkExpiresAt);
 
   const text = [
-    `Bonjour ${name},`,
+    'Bonjour,',
     '',
     `Vous avez demandé ${places} pour « 15 minutes » :`,
     `- ${show.label} (ouverture des portes ${show.doorsOpen})`,
@@ -208,7 +210,7 @@ export async function sendConfirmRequest(params: RequestMailParams, deps: EmailD
   ].join('\n');
 
   const html = layout(`
-  <p>Bonjour ${escapeHtml(name)},</p>
+  <p>Bonjour,</p>
   <p>Vous avez demandé <strong>${places}</strong> pour « 15 minutes » :</p>
   <div style="background:#fff;border-radius:12px;padding:16px 20px;border:1px solid #7BB7AA55">
     <p style="margin:0 0 6px">${escapeHtml(show.label)} <span style="color:#525968">(ouverture des portes ${show.doorsOpen})</span></p>

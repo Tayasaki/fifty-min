@@ -38,7 +38,7 @@ function deps(reply: (init: RequestInit | undefined) => Response | Promise<Respo
 }
 
 const ok = () => Response.json({ id: 'msg_1' });
-const requestParams = { name: 'Jean Dupont', email: 'jean@example.ch', quantity: 2, show, venue, link: LINK, linkExpiresAt: EXPIRES };
+const requestParams = { email: 'jean@example.ch', quantity: 2, show, venue, link: LINK, linkExpiresAt: EXPIRES };
 
 async function failure(promise: Promise<unknown>): Promise<EmailError> {
   try {
@@ -83,12 +83,23 @@ describe('sendConfirmRequest', () => {
     assert.equal(href.replace(/&amp;/g, '&'), LINK);
   });
 
-  it('escapes the name in html and leaves it raw in text', async () => {
+  it('greets without a name in text and html', async () => {
     const { deps: d, sent } = deps(ok);
-    await sendConfirmRequest({ ...requestParams, name: `<script>alert("x")</script> O'Neil & Co` }, d);
-    assert.ok(!sent[0].body.html.includes('<script>'));
-    assert.ok(sent[0].body.html.includes('&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt; O&#39;Neil &amp; Co'));
-    assert.ok(sent[0].body.text.includes(`<script>alert("x")</script> O'Neil & Co`));
+    await sendConfirmRequest(requestParams, d);
+    assert.ok(sent[0].body.text.startsWith('Bonjour,\n'));
+    assert.ok(sent[0].body.html.includes('<p>Bonjour,</p>'));
+    assert.ok(!sent[0].body.text.includes('Jean Dupont'));
+  });
+
+  it('ignores a name even when a caller still passes one', async () => {
+    const hostile = 'Évil <script> http://evil.de/x +41 79 000 00 00';
+    const { deps: d, sent } = deps(ok);
+    await sendConfirmRequest({ ...requestParams, name: hostile } as typeof requestParams, d);
+    const { subject, text, html } = sent[0].body;
+    for (const fragment of ['Évil', 'script', 'evil.de', '+41', '79 000']) {
+      for (const part of [subject, text, html]) assert.ok(!part.includes(fragment), fragment);
+    }
+    assert.ok(!JSON.stringify(sent[0].body).includes('Évil'));
   });
 
   it('attaches no calendar file', async () => {
@@ -182,6 +193,17 @@ describe('sendRecap and sendCancellation', () => {
     assert.ok(sent[0].body.text.includes(cancelLink));
     assert.ok(sent[0].body.html.includes(`href="${cancelLink}"`));
     assert.ok(sent[0].body.text.includes('Réservation n° ABCD1234'));
+  });
+
+  it('the recap and the cancellation greet by name', async () => {
+    const recap = deps(ok);
+    await sendRecap({ record, show, venue, cancelLink }, recap.deps);
+    assert.ok(recap.sent[0].body.text.startsWith('Bonjour Jean Dupont,\n'));
+    assert.ok(recap.sent[0].body.html.includes('<p>Bonjour Jean Dupont,</p>'));
+    const cancellation = deps(ok);
+    await sendCancellation({ record, show, venue }, cancellation.deps);
+    assert.ok(cancellation.sent[0].body.text.startsWith('Bonjour Jean Dupont,\n'));
+    assert.ok(cancellation.sent[0].body.html.includes('<p>Bonjour Jean Dupont,</p>'));
   });
 
   it('sendCancellation sends no attachment and links to the billetterie', async () => {

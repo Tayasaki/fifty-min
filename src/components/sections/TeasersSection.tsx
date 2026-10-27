@@ -15,62 +15,66 @@ interface Teaser {
   borderColor: string;
 }
 
-const teasers: Teaser[] = [
-  {
-    icon: Mic2,
-    title: 'Le spectacle',
-    description: "Six jeunes, une vidéo virale, et tout qui bascule. L'histoire au cœur du projet.",
-    to: '/spectacle',
-    color: 'text-teal',
-    bgColor: 'bg-teal/10',
-    borderColor: 'border-teal/20',
-  },
-  {
-    icon: Heart,
-    title: "L'association",
-    description: "De 2019 à aujourd'hui — qui nous sommes, ce qu'on défend.",
-    to: '/association',
-    color: 'text-purple',
-    bgColor: 'bg-purple/10',
-    borderColor: 'border-purple/20',
-  },
-  {
-    icon: Calendar,
-    title: 'Ateliers & événements',
-    description: "Blind tests, soirées, rencontres — les rendez-vous à venir.",
-    to: '/agenda',
-    color: 'text-gold',
-    bgColor: 'bg-gold/10',
-    borderColor: 'border-gold/20',
-  },
-  {
-    icon: Ticket,
-    title: 'Billetterie',
-    description: "Février et mars 2027 — réservez votre place pour les représentations.",
-    to: '/billetterie',
-    color: 'text-teal',
-    bgColor: 'bg-teal/10',
-    borderColor: 'border-teal/20',
-  },
-  {
-    icon: Gift,
-    title: 'Nous soutenir',
-    description: "Cagnotte, virement, coup de main : toutes les façons de nous accompagner.",
-    to: '/soutenir',
-    color: 'text-purple',
-    bgColor: 'bg-purple/10',
-    borderColor: 'border-purple/20',
-  },
-  {
-    icon: MessageCircle,
-    title: 'Contact',
-    description: "Une question, une idée, l'envie de rejoindre l'aventure ? Écrivez-nous.",
-    to: '/contact',
-    color: 'text-gold',
-    bgColor: 'bg-gold/10',
-    borderColor: 'border-gold/20',
-  },
-];
+export function buildTeasers(ticketingEnabled: boolean): Teaser[] {
+  return [
+    {
+      icon: Mic2,
+      title: 'Le spectacle',
+      description: "Six jeunes, une vidéo virale, et tout qui bascule. L'histoire au cœur du projet.",
+      to: '/spectacle',
+      color: 'text-teal',
+      bgColor: 'bg-teal/10',
+      borderColor: 'border-teal/20',
+    },
+    {
+      icon: Heart,
+      title: "L'association",
+      description: "De 2019 à aujourd'hui — qui nous sommes, ce qu'on défend.",
+      to: '/association',
+      color: 'text-purple',
+      bgColor: 'bg-purple/10',
+      borderColor: 'border-purple/20',
+    },
+    {
+      icon: Calendar,
+      title: 'Ateliers & événements',
+      description: "Blind tests, soirées, rencontres — les rendez-vous à venir.",
+      to: '/agenda',
+      color: 'text-gold',
+      bgColor: 'bg-gold/10',
+      borderColor: 'border-gold/20',
+    },
+    {
+      icon: Ticket,
+      title: 'Billetterie',
+      description: ticketingEnabled
+        ? 'Février et mars 2027 — réservez votre place pour les représentations.'
+        : 'La billetterie ouvrira prochainement.',
+      to: '/billetterie',
+      color: 'text-teal',
+      bgColor: 'bg-teal/10',
+      borderColor: 'border-teal/20',
+    },
+    {
+      icon: Gift,
+      title: 'Nous soutenir',
+      description: "Cagnotte, virement, coup de main : toutes les façons de nous accompagner.",
+      to: '/soutenir',
+      color: 'text-purple',
+      bgColor: 'bg-purple/10',
+      borderColor: 'border-purple/20',
+    },
+    {
+      icon: MessageCircle,
+      title: 'Contact',
+      description: "Une question, une idée, l'envie de rejoindre l'aventure ? Écrivez-nous.",
+      to: '/contact',
+      color: 'text-gold',
+      bgColor: 'bg-gold/10',
+      borderColor: 'border-gold/20',
+    },
+  ];
+}
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -82,6 +86,7 @@ const fadeUp = {
 };
 
 export default function TeasersSection() {
+  const teasers = buildTeasers(process.env.REACT_APP_SHOW_TICKETING === 'true');
   return (
     <section id="teasers" className="bg-surface py-24">
       <div className="max-w-6xl mx-auto px-6">

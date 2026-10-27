@@ -1,5 +1,5 @@
-import { MAX_TICKETS_PER_EMAIL, getShow, showStart } from '../../src/config/shows';
-import { ERR } from './http';
+import { MAX_TICKETS_PER_EMAIL, getShow, getVenue, showStart, type Show, type Venue } from '../../src/config/shows';
+import { ERR, MSG } from './http';
 
 export interface ReserveFields {
   showId: string;
@@ -8,9 +8,11 @@ export interface ReserveFields {
   quantity: number;
   canonicalEmail: string;
   turnstileToken: string;
+  show: Show;
+  venue: Venue;
 }
 
-type Failure = { ok: false; status: number; message: string };
+type Failure = { ok: false; status: number; message: string; code?: string };
 export type GuardResult = { ok: true } | Failure;
 
 const DEFAULT_MAX_BODY_BYTES = 4096;
@@ -26,7 +28,8 @@ const NAME_URL_HINTS = /:\/\/|www\.|@|\b[a-z0-9-]+\.(com|net|org|ch|fr|io|ru|xyz
 const EMAIL_LOCAL_RE = /^[A-Za-z0-9!#$%&'*+\/=?^_`{|}~-]+(\.[A-Za-z0-9!#$%&'*+\/=?^_`{|}~-]+)*$/;
 const EMAIL_DOMAIN_RE = /^([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,}$/;
 
-const fail = (status: number, message: string): Failure => ({ ok: false, status, message });
+const fail = (status: number, message: string, code?: string): Failure =>
+  code === undefined ? { ok: false, status, message } : { ok: false, status, message, code };
 
 export function checkMethod(request: Request, allowed: string): GuardResult {
   return request.method === allowed ? { ok: true } : fail(405, 'Méthode non autorisée');
@@ -132,8 +135,9 @@ export function validateReserveFields(
 ): { ok: true; value: ReserveFields } | Failure {
   const showId = typeof body.showId === 'string' ? body.showId : '';
   const show = getShow(showId);
-  if (!show) return fail(400, ERR.UNKNOWN_SHOW);
-  if (now() >= showStart(show).getTime()) return fail(400, 'Les réservations pour cette date sont closes');
+  const venue = show && getVenue(show.venueId);
+  if (!show || !venue) return fail(400, ERR.UNKNOWN_SHOW);
+  if (now() >= showStart(show).getTime()) return fail(409, MSG.SHOW_STARTED, 'closed');
 
   const name = validateName(body.name);
   if (!name.ok) return fail(400, name.message);
@@ -149,5 +153,8 @@ export function validateReserveFields(
   const turnstileToken = typeof body.turnstileToken === 'string' ? body.turnstileToken.trim() : '';
   if (turnstileToken.length > MAX_TURNSTILE_TOKEN_LENGTH) return fail(400, ERR.INVALID_REQUEST);
 
-  return { ok: true, value: { showId, name: name.value, email, quantity, canonicalEmail: canonicalEmail(email), turnstileToken } };
+  return {
+    ok: true,
+    value: { showId, name: name.value, email, quantity, canonicalEmail: canonicalEmail(email), turnstileToken, show, venue },
+  };
 }

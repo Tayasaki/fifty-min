@@ -12,7 +12,8 @@ import {
   validateName,
   validateReserveFields,
 } from '../_lib/guard';
-import { getShow, showStart } from '../../src/config/shows';
+import { SHOWS, getShow, getVenue, showStart } from '../../src/config/shows';
+import { ERR, MSG } from '../_lib/http';
 
 const SHOW_ID = '2027-02-20-monique';
 const START = showStart(getShow(SHOW_ID)!).getTime();
@@ -250,6 +251,8 @@ describe('validateReserveFields', () => {
         quantity: 2,
         canonicalEmail: 'jean.dupont@example.ch',
         turnstileToken: 'tok',
+        show: getShow(SHOW_ID),
+        venue: getVenue('monique'),
       },
     });
   });
@@ -282,8 +285,28 @@ describe('validateReserveFields', () => {
 
   it('closes at the show start and accepts 1 ms before', () => {
     const closed = validateReserveFields(base, () => START);
-    assert.deepEqual(closed, { ok: false, status: 400, message: 'Les réservations pour cette date sont closes' });
+    assert.deepEqual(closed, { ok: false, status: 409, code: 'closed', message: MSG.SHOW_STARTED });
     assert.equal(validateReserveFields(base, () => START - 1).ok, true);
+  });
+
+  it('resolves the show and its venue once', () => {
+    const result = validateReserveFields(base, before);
+    assert.ok(result.ok);
+    if (result.ok) {
+      assert.equal(result.value.show, getShow(SHOW_ID));
+      assert.equal(result.value.venue, getVenue(result.value.show.venueId));
+    }
+  });
+
+  it('rejects a show whose venue is unknown like an unknown show', () => {
+    const orphan = { ...getShow(SHOW_ID)!, id: '2100-01-01-orphan', venueId: 'nowhere', date: '2100-01-01T19:00' };
+    SHOWS.push(orphan);
+    try {
+      const result = validateReserveFields({ ...base, showId: orphan.id }, before);
+      assert.deepEqual(result, { ok: false, status: 400, message: ERR.UNKNOWN_SHOW });
+    } finally {
+      SHOWS.splice(SHOWS.indexOf(orphan), 1);
+    }
   });
 
   it('rejects a bad name with the existing message', () => {

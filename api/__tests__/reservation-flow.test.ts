@@ -8,7 +8,7 @@ import { claimAtomic, getReservation, keys, redis, type ReservationRecord } from
 import { handleReservationGet, handleReservationPost } from '../_lib/reservation-flow';
 import {
   LINK_SECRET, NOW, SYNTH_SHOW_ID, SYNTH_START, captureLogs, containsNone, getRequest, makeDeps, makeEnv, makeLink,
-  postJson, redisDown, registerTestShow, snapshot, type Harness,
+  postJson, redisCommandsOf, redisDown, registerTestShow, snapshot, type Harness,
 } from './helpers/flow';
 
 const shimFetch = globalThis.fetch;
@@ -41,6 +41,8 @@ function flip(token: string, index: number): string {
   return chars.join('');
 }
 
+const SENT_KEY = 'quota:sent:2099-06-01';
+const sentCount = async (): Promise<number> => Number((await redis<string | null>('GET', SENT_KEY)) ?? 0);
 const bookedCount = async (): Promise<string | null> => redis<string | null>('GET', keys.booked(SYNTH_SHOW_ID));
 
 /** Confirms a fresh link through the handler and returns the stored record (which holds the cancel token). */
@@ -67,21 +69,7 @@ async function seed(email: string, quantity: number): Promise<void> {
 }
 
 /** Names of the Redis commands issued while fn runs. */
-async function commandsOf(fn: () => Promise<unknown>): Promise<string[]> {
-  const real = globalThis.fetch;
-  const names: string[] = [];
-  globalThis.fetch = async (input, init) => {
-    const url = typeof input === 'string' || input instanceof URL ? String(input) : input.url;
-    if (url.includes('upstash-shim')) names.push((JSON.parse(String(init?.body)) as string[])[0]);
-    return real(input, init);
-  };
-  try {
-    await fn();
-  } finally {
-    globalThis.fetch = real;
-  }
-  return names;
-}
+const commandsOf = async (fn: () => Promise<unknown>): Promise<string[]> => (await redisCommandsOf(fn)).map((command) => command[0]);
 
 describe('/api/reservation authz (nothing reaches Redis or Resend)', () => {
   let h: Harness;
@@ -495,8 +483,12 @@ describe('/api/reservation with Redis', { skip: redisSkipReason }, () => {
 
     it('F7 still sends the recap when the send quota is unavailable', async () => {
       const real = globalThis.fetch;
+      let quotaCalls = 0;
       globalThis.fetch = async (input, init) => {
-        if (String(init?.body).includes('quota:sent')) return Response.json({ error: 'upstream failure' }, { status: 500 });
+        if (String(init?.body).includes('quota:sent')) {
+          quotaCalls += 1;
+          return Response.json({ error: 'upstream failure' }, { status: 500 });
+        }
         return real(input, init);
       };
       try {
@@ -504,9 +496,33 @@ describe('/api/reservation with Redis', { skip: redisSkipReason }, () => {
         const res = await body(await confirm(h, link.id, link.token));
         assert.equal(res.emailSent, true);
         assert.equal(h.outbox.length, 1);
+        assert.equal(quotaCalls, 1);
       } finally {
         globalThis.fetch = real;
       }
+    });
+
+    it('counts the recap mail once in the daily send counter', async () => {
+      assert.equal(await sentCount(), 0);
+      const link = makeLink();
+      assert.equal((await body(await confirm(h, link.id, link.token))).emailSent, true);
+      assert.equal(await sentCount(), 1);
+    });
+
+    it('counts the recap mail even when it fails to leave', async () => {
+      h.resend.behavior = { status: 500, body: '{}' };
+      const link = makeLink();
+      assert.equal((await body(await confirm(h, link.id, link.token))).emailSent, false);
+      assert.equal(await sentCount(), 1);
+    });
+
+    it('does not count anything for a confirm replay', async () => {
+      const link = makeLink();
+      await confirm(h, link.id, link.token);
+      const replay = await body(await confirm(h, link.id, link.token));
+      assert.equal(replay.alreadyConfirmed, true);
+      assert.equal(await sentCount(), 1);
+      assert.equal(h.outbox.length, 1);
     });
 
     it('answers 503 with a generic body when the claim fails', async () => {
@@ -535,6 +551,15 @@ describe('/api/reservation with Redis', { skip: redisSkipReason }, () => {
       assert.equal(await bookedCount(), '0');
       assert.equal(h.outbox.length, 2);
       assert.ok(h.outbox[1].subject.startsWith('Annulation'));
+    });
+
+    it('counts the cancellation mail once in the daily send counter, and not on a replay', async () => {
+      const { record } = await confirmed(h);
+      assert.equal(await sentCount(), 1);
+      assert.equal((await body(await cancel(h, record.id, record.token))).emailSent, true);
+      assert.equal(await sentCount(), 2);
+      assert.equal((await body(await cancel(h, record.id, record.token))).alreadyCancelled, true);
+      assert.equal(await sentCount(), 2);
     });
 
     it('P4 answers alreadyCancelled without a second mail and decrements once', async () => {

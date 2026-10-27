@@ -17,35 +17,39 @@ const ORGANIZATION_REF = {
   url: SITE_URL,
 } as const;
 
-const THEATER_EVENT = {
-  '@context': 'https://schema.org',
-  '@type': 'TheaterEvent',
-  name: '15 minutes',
-  description:
-    "La première comédie musicale originale de Mélange de Genres. Une exploration de la célébrité éphémère à l'ère des réseaux sociaux.",
-  url: SITE_URL,
-  performer: ORGANIZATION_REF,
-  organizer: ORGANIZATION_REF,
-  startDate: '2027-02-01',
-  endDate: '2027-04-30',
-  location: {
-    '@type': 'Place',
-    name: 'Suisse romande',
-    address: {
-      '@type': 'PostalAddress',
-      addressRegion: 'Suisse romande',
-      addressCountry: 'CH',
+export const TICKETING_OFFER = {
+  '@type': 'Offer',
+  url: `${SITE_URL}/billetterie`,
+  availability: 'https://schema.org/PreOrder',
+  priceCurrency: 'CHF',
+} as const;
+
+export function theaterEvent(offers: typeof TICKETING_OFFER | null) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'TheaterEvent',
+    name: '15 minutes',
+    description:
+      "La première comédie musicale originale de Mélange de Genres. Une exploration de la célébrité éphémère à l'ère des réseaux sociaux.",
+    url: SITE_URL,
+    performer: ORGANIZATION_REF,
+    organizer: ORGANIZATION_REF,
+    startDate: '2027-02-01',
+    endDate: '2027-04-30',
+    location: {
+      '@type': 'Place',
+      name: 'Suisse romande',
+      address: {
+        '@type': 'PostalAddress',
+        addressRegion: 'Suisse romande',
+        addressCountry: 'CH',
+      },
     },
-  },
-  offers: {
-    '@type': 'Offer',
-    url: `${SITE_URL}/billetterie`,
-    availability: 'https://schema.org/PreOrder',
-    priceCurrency: 'CHF',
-  },
-  inLanguage: 'fr',
-  eventStatus: 'https://schema.org/EventScheduled',
-};
+    ...(offers && { offers }),
+    inLanguage: 'fr',
+    eventStatus: 'https://schema.org/EventScheduled',
+  };
+}
 
 interface EventLDProps {
   name: string;
@@ -117,7 +121,7 @@ export function OrganizationLD() {
 export function TheaterEventLD() {
   return (
     <Helmet>
-      <script type="application/ld+json">{JSON.stringify(THEATER_EVENT)}</script>
+      <script type="application/ld+json">{JSON.stringify(theaterEvent(process.env.REACT_APP_SHOW_TICKETING === 'true' ? TICKETING_OFFER : null))}</script>
     </Helmet>
   );
 }

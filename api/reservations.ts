@@ -3,6 +3,7 @@
 
 import { SHOWS, getShow } from '../src/config/shows';
 import { ERR, MSG, error, safeEqual } from './_lib/http';
+import { MIN_SECRET_LENGTH } from './_lib/link';
 import { ReservationRecord, keys, redis } from './_lib/redis';
 
 const STATUS_LABELS: Record<string, string> = { confirmed: 'confirmée', cancelled: 'annulée' };
@@ -16,7 +17,7 @@ function csvCell(value: string | number): string {
 
 function authenticate(request: Request): Response | null {
   const adminToken = process.env.ADMIN_TOKEN ?? '';
-  if (!adminToken) {
+  if (adminToken.length < MIN_SECRET_LENGTH) {
     console.error('admin export is not configured');
     return error(ERR.UNAVAILABLE, 503);
   }

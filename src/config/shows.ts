@@ -23,9 +23,6 @@ export interface Show {
 
 export const MAX_TICKETS_PER_EMAIL = 4;
 
-/** Unconfirmed reservations are released after this delay (or at show start, whichever comes first). */
-export const CONFIRMATION_DELAY_HOURS = 48;
-
 /** 2h45 with intermission (used for calendar events). */
 export const SHOW_DURATION_MINUTES = 165;
 

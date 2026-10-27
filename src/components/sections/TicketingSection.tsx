@@ -1,34 +1,38 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from '../ui/button';
 import { MapPin, Clock, Ticket, MailCheck, AlertCircle, Accessibility } from 'lucide-react';
 import { MAX_TICKETS_PER_EMAIL, SHOWS, VENUES, type Show, getVenue } from '../../config/shows';
+import { getTurnstileSiteKey } from '../../config/features';
+import { CLOSED_COPY, PRIVACY_NOTICE, SUCCESS_TITLE, UNAVAILABLE_COPY, contactMailto, successText } from '../../config/billetterieCopy';
 import { cn } from '../../lib/utils';
 import { suggestEmail } from '../../lib/emailTypos';
+import { formatDateTime } from '../../lib/formatDateTime';
+import {
+  type ApiFailure,
+  type AvailabilitySnapshot,
+  failureText,
+  isClosed,
+  parseAvailability,
+  parseReserveSuccess,
+  requestAvailability,
+  requestReserve,
+  retryMinutes,
+} from '../../lib/billetterieApi';
+import TurnstileWidget from './TurnstileWidget';
 
-const showTicketing = process.env.REACT_APP_SHOW_TICKETING === 'true';
+type SubmitState = { kind: 'idle' } | { kind: 'loading' } | { kind: 'error'; message: string };
 
-type Availability = Record<string, number>;
-
-type SubmitState =
-  | { kind: 'idle' }
-  | { kind: 'loading' }
-  | { kind: 'error'; message: string }
-  | { kind: 'success'; reservationId: string; expiresAt: number; email: string; quantity: number; show: Show };
+interface SuccessState {
+  email: string;
+  quantity: number;
+  show: Show;
+  /** Formatted deadline, or null when the server value is unusable. */
+  deadline: string | null;
+}
 
 function sameEmail(a: string, b: string): boolean {
   return a.trim().toLowerCase() === b.trim().toLowerCase();
-}
-
-function formatDeadline(ms: number): string {
-  return new Date(ms).toLocaleString('fr-CH', {
-    timeZone: 'Europe/Zurich',
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 function remainingLabel(remaining: number | undefined): string {
@@ -38,14 +42,49 @@ function remainingLabel(remaining: number | undefined): string {
   return 'Places disponibles';
 }
 
+/** The server text is the wording; only the retry delay is added here. */
+function describeFailure(failure: ApiFailure): string {
+  const text = failureText(failure);
+  const minutes = failure.kind === 'http' && failure.code === 'cooldown' ? retryMinutes(failure) : undefined;
+  return minutes === undefined ? text : `${text} Vous pourrez réessayer dans ${minutes} minute${minutes > 1 ? 's' : ''}.`;
+}
+
+function deadlineLabel(linkExpiresAt: number | null): string | null {
+  return linkExpiresAt !== null && linkExpiresAt > Date.now() ? formatDateTime(linkExpiresAt) : null;
+}
+
+function UnavailablePanel({ onRetry }: { onRetry?: () => void }) {
+  return (
+    <div className="flex flex-col items-center gap-3 text-center">
+      <AlertCircle size={32} className="text-purple" />
+      <h3 className="font-display text-xl font-bold text-text-primary">{UNAVAILABLE_COPY.title}</h3>
+      <p className="text-text-muted text-sm leading-relaxed">{UNAVAILABLE_COPY.body}</p>
+      <a href={contactMailto()} className="text-teal-deep text-sm font-medium underline underline-offset-2">
+        Nous écrire
+      </a>
+      {onRetry && (
+        <Button type="button" variant="outline" className="rounded-full" onClick={onRetry}>
+          Réessayer
+        </Button>
+      )}
+    </div>
+  );
+}
+
 function ReservationForm({
   show,
   remaining,
+  siteKey,
+  onRefresh,
+  onClosed,
   onSuccess,
 }: {
   show: Show;
   remaining: number | undefined;
-  onSuccess: (state: Extract<SubmitState, { kind: 'success' }>) => void;
+  siteKey: string;
+  onRefresh: () => void;
+  onClosed: () => void;
+  onSuccess: (state: SuccessState) => void;
 }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -55,6 +94,10 @@ function ReservationForm({
   const [quantity, setQuantity] = useState(1);
   const [website, setWebsite] = useState('');
   const [state, setState] = useState<SubmitState>({ kind: 'idle' });
+  const [token, setToken] = useState<string | null>(null);
+  const [captchaEpoch, setCaptchaEpoch] = useState(0);
+  const [widgetUnavailable, setWidgetUnavailable] = useState(false);
+  const inFlight = useRef(false);
   const venue = getVenue(show.venueId);
   const maxQuantity = Math.max(1, Math.min(MAX_TICKETS_PER_EMAIL, remaining ?? MAX_TICKETS_PER_EMAIL));
 
@@ -65,30 +108,60 @@ function ReservationForm({
   const suggestion = emailTouched ? suggestEmail(email.trim()) : null;
   const emailMismatch = confirmTouched && emailConfirm !== '' && !sameEmail(email, emailConfirm);
 
+  /** Tokens are single use: every round trip replaces the widget and drops the token. */
+  function resetCaptcha() {
+    setToken(null);
+    setCaptchaEpoch((epoch) => epoch + 1);
+  }
+
+  function fail(failure: ApiFailure) {
+    resetCaptcha();
+    setState({ kind: 'error', message: describeFailure(failure) });
+    if (failure.kind === 'http' && failure.remaining !== undefined) {
+      const left = failure.remaining;
+      setQuantity((current) => Math.min(current, Math.max(1, left)));
+    }
+    onRefresh();
+    if (isClosed(failure)) onClosed();
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (inFlight.current || token === null) return;
     if (!sameEmail(email, emailConfirm)) {
       setConfirmTouched(true);
       return;
     }
+    inFlight.current = true;
     setState({ kind: 'loading' });
-    try {
-      const res = await fetch('/api/reserve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ showId: show.id, name, email, quantity, website }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setState({ kind: 'error', message: data.error || 'Une erreur est survenue.' });
-        return;
-      }
-      onSuccess({ kind: 'success', reservationId: data.reservationId, expiresAt: data.expiresAt, email, quantity, show });
-    } catch {
-      setState({ kind: 'error', message: 'Impossible de contacter le serveur. Merci de réessayer.' });
+    const result = await requestReserve({ showId: show.id, name, email, quantity, turnstileToken: token, website });
+    inFlight.current = false;
+    if (!result.ok) {
+      fail(result.failure);
+      return;
     }
+    const reserved = parseReserveSuccess(result.data);
+    if (!reserved) {
+      fail({ kind: 'http', status: 502 });
+      return;
+    }
+    resetCaptcha();
+    onSuccess({ email, quantity, show, deadline: deadlineLabel(reserved.linkExpiresAt) });
   }
 
+  if (widgetUnavailable) {
+    return (
+      <UnavailablePanel
+        onRetry={() => {
+          setWidgetUnavailable(false);
+          resetCaptcha();
+        }}
+      />
+    );
+  }
+
+  const soldOut = remaining === 0;
+  const loading = state.kind === 'loading';
   const inputClass =
     'w-full h-11 rounded-lg border border-black/10 bg-white px-4 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-teal/40';
 
@@ -173,36 +246,92 @@ function ReservationForm({
         aria-hidden="true"
       />
 
+      <TurnstileWidget key={captchaEpoch} siteKey={siteKey} onToken={setToken} onUnavailable={() => setWidgetUnavailable(true)} />
+
+      <p className="text-text-muted text-xs leading-relaxed">
+        <strong className="text-text-primary font-medium">{PRIVACY_NOTICE.heading}</strong> {PRIVACY_NOTICE.text}
+      </p>
+
       {state.kind === 'error' && (
-        <p className="flex items-start gap-2 text-sm text-red-700 bg-red-50 rounded-lg p-3">
+        <p role="alert" className="flex items-start gap-2 text-sm text-red-700 bg-red-50 rounded-lg p-3">
           <AlertCircle size={16} className="shrink-0 mt-0.5" />
           {state.message}
         </p>
       )}
 
-      <Button type="submit" variant="dark" size="lg" className="rounded-full w-full" disabled={state.kind === 'loading'}>
-        {state.kind === 'loading' ? 'Réservation en cours…' : 'Réserver gratuitement'}
+      <Button type="submit" variant="dark" size="lg" className="rounded-full w-full" disabled={loading || token === null || soldOut}>
+        {loading ? 'Réservation en cours…' : 'Réserver gratuitement'}
       </Button>
     </form>
   );
 }
 
-export default function TicketingSection() {
-  const [availability, setAvailability] = useState<Availability | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [success, setSuccess] = useState<Extract<SubmitState, { kind: 'success' }> | null>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
+function SectionHeader({ children }: { children?: React.ReactNode }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 40 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      viewport={{ once: true }}
+      className="text-center mb-14"
+    >
+      <p className="text-purple text-sm font-medium tracking-widest uppercase mb-3">Réservations</p>
+      <h2 className="section-title">Billetterie</h2>
+      <div className="w-16 h-1 rounded-full bg-purple mx-auto mt-4" />
+      {children}
+    </motion.div>
+  );
+}
 
-  function loadAvailability() {
-    fetch('/api/availability')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => data && setAvailability(data.availability))
-      .catch(() => {});
-  }
+function ComingSoonPanel() {
+  return (
+    <section id="billetterie" className="py-24 bg-background">
+      <div className="max-w-6xl mx-auto px-6">
+        <SectionHeader />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          viewport={{ once: true }}
+          className="border-2 border-dashed border-purple/25 rounded-2xl flex flex-col items-center justify-center py-24 px-8 text-center bg-white/50 max-w-4xl mx-auto"
+        >
+          <motion.div animate={{ rotate: [0, 5, -5, 0] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}>
+            <Ticket size={48} className="text-purple/50 mb-6" />
+          </motion.div>
+          <h3 className="font-display text-2xl font-bold text-text-primary mb-3">Bientôt disponible</h3>
+          <p className="text-text-muted max-w-md leading-relaxed">
+            La billetterie pour <span className="text-purple">15 minutes</span> ouvrira très prochainement. Restez
+            connecté·e·s !
+          </p>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+function TicketingPanel() {
+  const siteKey = getTurnstileSiteKey();
+  const [snapshot, setSnapshot] = useState<AvailabilitySnapshot | null>(null);
+  const [closedByServer, setClosedByServer] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [success, setSuccess] = useState<SuccessState | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const mounted = useRef(true);
+
+  const loadAvailability = useCallback(async () => {
+    const result = await requestAvailability();
+    if (!mounted.current || !result.ok) return;
+    const parsed = parseAvailability(result.data);
+    if (parsed) setSnapshot(parsed);
+  }, []);
 
   useEffect(() => {
-    if (showTicketing) loadAvailability();
-  }, []);
+    mounted.current = true;
+    void loadAvailability();
+    return () => {
+      mounted.current = false;
+    };
+  }, [loadAvailability]);
 
   function selectShow(id: string) {
     setSelectedId(id);
@@ -210,32 +339,20 @@ export default function TicketingSection() {
     setTimeout(() => panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
   }
 
+  const availability = snapshot?.availability;
+  const closed = closedByServer || snapshot?.open === false;
   const selectedShow = SHOWS.find((s) => s.id === selectedId);
 
   return (
     <section id="billetterie" className="py-24 bg-background">
       <div className="max-w-6xl mx-auto px-6">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true }}
-          className="text-center mb-14"
-        >
-          <p className="text-purple text-sm font-medium tracking-widest uppercase mb-3">Réservations</p>
-          <h2 className="section-title">Billetterie</h2>
-          <div className="w-16 h-1 rounded-full bg-purple mx-auto mt-4" />
-          {showTicketing && (
-            <p className="section-subtitle max-w-xl mx-auto mt-6">
-              L'entrée est gratuite, mais la réservation est obligatoire. Choisissez une date, indiquez votre email, puis
-              confirmez la réservation grâce au lien reçu par email.
-            </p>
-          )}
-        </motion.div>
+        <SectionHeader>
+          <p className="section-subtitle max-w-xl mx-auto mt-6">
+            L'entrée est gratuite, mais la réservation est obligatoire. Choisissez une date, indiquez votre email, puis
+            confirmez la réservation grâce au lien reçu par email.
+          </p>
+        </SectionHeader>
 
-        {showTicketing ? (
-          <>
             {/* Venue cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
               {VENUES.map((venue, i) => (
@@ -269,7 +386,7 @@ export default function TicketingSection() {
                         <li key={show.id}>
                           <button
                             type="button"
-                            disabled={soldOut}
+                            disabled={soldOut || closed}
                             onClick={() => selectShow(show.id)}
                             className={cn(
                               'w-full flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left text-sm transition-colors',
@@ -307,19 +424,25 @@ export default function TicketingSection() {
                     className="bg-white rounded-2xl p-8 shadow-card border border-teal/30 text-center flex flex-col items-center gap-3"
                   >
                     <MailCheck size={40} className="text-teal" />
-                    <h3 className="font-display text-2xl font-bold text-text-primary">Plus qu'une étape !</h3>
+                    <h3 className="font-display text-2xl font-bold text-text-primary">{SUCCESS_TITLE}</h3>
                     <p className="text-text-muted text-sm leading-relaxed">
-                      {success.quantity} place{success.quantity > 1 ? 's' : ''} pour le {success.show.label.toLowerCase()}{' '}
-                      {success.quantity > 1 ? 'vous sont réservées' : 'vous est réservée'}.
+                      {success.quantity} place{success.quantity > 1 ? 's' : ''} demandée{success.quantity > 1 ? 's' : ''} pour le{' '}
+                      {success.show.label.toLowerCase()}.
                     </p>
-                    <p className="text-text-muted text-sm leading-relaxed">
-                      Un email vient d'être envoyé à <strong className="text-text-primary">{success.email}</strong>.
-                      Cliquez sur le lien qu'il contient <strong className="text-text-primary">avant le {formatDeadline(success.expiresAt)}</strong>{' '}
-                      pour confirmer votre réservation, sinon les places seront libérées. Pensez à vérifier vos spams.
-                    </p>
+                    <p className="text-text-muted text-sm leading-relaxed">{successText(success.email, success.deadline)}</p>
                     <Button variant="outline" className="rounded-full mt-2" onClick={() => setSuccess(null)}>
                       Nouvelle réservation
                     </Button>
+                  </motion.div>
+                ) : closed ? (
+                  <motion.div
+                    key="closed"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="bg-white rounded-2xl p-8 shadow-card border border-black/6 text-center"
+                  >
+                    <p className="text-text-muted text-sm leading-relaxed">{CLOSED_COPY.text}</p>
                   </motion.div>
                 ) : selectedShow ? (
                   <motion.div
@@ -329,15 +452,22 @@ export default function TicketingSection() {
                     exit={{ opacity: 0 }}
                     className="bg-white rounded-2xl p-8 shadow-card border border-black/6"
                   >
-                    <ReservationForm
-                      show={selectedShow}
-                      remaining={availability?.[selectedShow.id]}
-                      onSuccess={(s) => {
-                        setSuccess(s);
-                        setSelectedId(null);
-                        loadAvailability();
-                      }}
-                    />
+                    {siteKey === '' ? (
+                      <UnavailablePanel />
+                    ) : (
+                      <ReservationForm
+                        show={selectedShow}
+                        remaining={availability?.[selectedShow.id]}
+                        siteKey={siteKey}
+                        onRefresh={() => void loadAvailability()}
+                        onClosed={() => setClosedByServer(true)}
+                        onSuccess={(s) => {
+                          setSuccess(s);
+                          setSelectedId(null);
+                          void loadAvailability();
+                        }}
+                      />
+                    )}
                   </motion.div>
                 ) : (
                   <motion.p key="hint" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-text-muted text-sm">
@@ -346,26 +476,11 @@ export default function TicketingSection() {
                 )}
               </AnimatePresence>
             </div>
-          </>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            viewport={{ once: true }}
-            className="border-2 border-dashed border-purple/25 rounded-2xl flex flex-col items-center justify-center py-24 px-8 text-center bg-white/50 max-w-4xl mx-auto"
-          >
-            <motion.div animate={{ rotate: [0, 5, -5, 0] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}>
-              <Ticket size={48} className="text-purple/50 mb-6" />
-            </motion.div>
-            <h3 className="font-display text-2xl font-bold text-text-primary mb-3">Bientôt disponible</h3>
-            <p className="text-text-muted max-w-md leading-relaxed">
-              La billetterie pour <span className="text-purple">15 minutes</span> ouvrira très prochainement. Restez
-              connecté·e·s !
-            </p>
-          </motion.div>
-        )}
       </div>
     </section>
   );
+}
+
+export default function TicketingSection() {
+  return process.env.REACT_APP_SHOW_TICKETING === 'true' ? <TicketingPanel /> : <ComingSoonPanel />;
 }

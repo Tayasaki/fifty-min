@@ -52,35 +52,10 @@ export async function getReservation(id: string): Promise<{ record: ReservationR
   return raw ? { record: JSON.parse(raw) as ReservationRecord, raw } : null;
 }
 
-export interface ClaimState {
-  booked: number;
-  /** Seats already held by this canonical address */
-  mine: number;
-  /** Seats already held by this domain */
-  theirs: number;
-}
-
-// Read-only snapshot used to refuse a request before any mail or quota is spent.
-const CLAIM_STATE_SCRIPT = `
-return {
-  tonumber(redis.call('GET', KEYS[1]) or '0'),
-  tonumber(redis.call('HGET', KEYS[2], ARGV[1]) or '0'),
-  tonumber(redis.call('HGET', KEYS[3], ARGV[2]) or '0')
-}
-`;
-
-export async function readClaimState(showId: string, canonicalEmail: string, domain: string): Promise<ClaimState> {
-  const [booked, mine, theirs] = await redis<[number, number, number]>(
-    'EVAL',
-    CLAIM_STATE_SCRIPT,
-    3,
-    keys.booked(showId),
-    keys.perEmail(showId),
-    keys.perDomain(showId),
-    canonicalEmail,
-    domain
-  );
-  return { booked: Number(booked), mine: Number(mine), theirs: Number(theirs) };
+/** Seats already booked for the show; an absent or non-numeric counter reads as 0. */
+export async function readBooked(showId: string): Promise<number> {
+  const booked = Number(await redis<string | null>('GET', keys.booked(showId)));
+  return Number.isFinite(booked) ? booked : 0;
 }
 
 /** One read for the preview of a signed link: the stored record (if any), its tombstone and the show counter. */

@@ -201,6 +201,23 @@ export function redisDown(): { calls: () => number; restore: () => void } {
   return { calls: () => count, restore: () => void (globalThis.fetch = original) };
 }
 
+/** Every Redis command (name and arguments) issued while fn runs, in order. */
+export async function redisCommandsOf(fn: () => Promise<unknown>): Promise<string[][]> {
+  const real = globalThis.fetch;
+  const commands: string[][] = [];
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url);
+    if (url.hostname === SHIM_HOST) commands.push(JSON.parse(String(init?.body)) as string[]);
+    return real(input, init);
+  };
+  try {
+    await fn();
+  } finally {
+    globalThis.fetch = real;
+  }
+  return commands;
+}
+
 export function containsNone(haystack: string, needles: string[]): boolean {
   return needles.every((needle) => !haystack.includes(needle));
 }

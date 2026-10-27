@@ -11,7 +11,7 @@ import { handleReserve } from '../_lib/reserve-flow';
 import type { Deps } from '../_lib/deps';
 import {
   LINK_SECRET, NOW, ORIGIN, SYNTH_SHOW_ID, SYNTH_START, captureLogs, containsNone, freshToken, keyList, makeDeps,
-  makeEnv, redisDown, registerTestShow, reserveRequest, snapshot, validReserve, type Harness,
+  makeEnv, redisCommandsOf, redisDown, registerTestShow, reserveRequest, snapshot, validReserve, type Harness,
 } from './helpers/flow';
 
 const shimFetch = globalThis.fetch;
@@ -226,8 +226,8 @@ noRedisSuite('POST /api/reserve authz and abuse (nothing reaches Redis or Resend
   it('closes requests at the exact start instant', async () => {
     h.clock.now = SYNTH_START;
     const res = await call(h, validReserve());
-    assert.equal(res.status, 400);
-    assert.deepEqual(await res.json(), { error: 'Les réservations pour cette date sont closes' });
+    assert.equal(res.status, 409);
+    assert.deepEqual(await res.json(), { error: MSG.SHOW_STARTED, code: 'closed' });
     untouched();
   });
 
@@ -297,35 +297,52 @@ describe('POST /api/reserve with Redis', { skip: redisSkipReason }, () => {
     await noMail(before);
   });
 
-  it('refuses the email cap through a +tag alias with the neutral text', async () => {
+  it('mails an address that already holds seats up to its cap, through a +tag alias', async () => {
     await seed('jean@example.ch', 3);
-    const before = await snapshot();
     const res = await call(h, validReserve({ email: 'jean+theatre@example.ch', quantity: 2 }));
-    assert.equal(res.status, 409);
-    assert.deepEqual(await res.json(), { error: MSG.NOT_POSSIBLE, code: 'not-possible' });
-    await noMail(before);
+    assert.equal(res.status, 200);
+    assert.deepEqual(Object.keys((await res.json()) as object).sort(), ['linkExpiresAt', 'ok']);
+    assert.equal(h.resend.calls, 1);
+    assert.equal(await redis('EXISTS', 'quota:cooldown:jean@example.ch'), 1);
   });
 
-  it('refuses the email cap through a googlemail alias', async () => {
+  it('mails an address that already holds seats up to its cap, through a googlemail alias', async () => {
     await seed('a.b@gmail.com', 3);
-    const before = await snapshot();
     const res = await call(h, validReserve({ email: 'ab+x@googlemail.com', quantity: 2 }));
-    assert.equal(res.status, 409);
-    assert.equal(((await res.json()) as { code: string }).code, 'not-possible');
-    await noMail(before);
+    assert.equal(res.status, 200);
+    assert.equal(h.resend.calls, 1);
+    assert.equal(await redis('EXISTS', 'quota:cooldown:ab@gmail.com'), 1);
   });
 
-  it('gives the email cap and the domain cap byte-identical responses', async () => {
-    await seed('jean@example.ch', 3);
-    const emailCap = await call(h, validReserve({ quantity: 2 }));
-    assert.equal(emailCap.status, 409);
-    const emailBody = await emailCap.text();
-    await redis('FLUSHDB');
+  it('mails an address whose domain already holds its cap of seats', async () => {
     for (const who of ['p', 'q', 'r']) await seed(`${who}@corp.example`, 4);
-    const domainCap = await call(h, validReserve({ email: 'new@corp.example', quantity: 1 }));
-    assert.equal(domainCap.status, emailCap.status);
-    assert.equal(await domainCap.text(), emailBody);
-    assert.equal(h.resend.calls, 0);
+    const res = await call(h, validReserve({ email: 'new@corp.example', quantity: 1 }));
+    assert.equal(res.status, 200);
+    assert.equal(h.resend.calls, 1);
+    assert.equal(await redis('EXISTS', 'quota:cooldown:new@corp.example'), 1);
+  });
+
+  it('answers identically whether the address holds 0, 3 or 4 seats', async () => {
+    const answers: { status: number; body: Record<string, unknown> }[] = [];
+    for (const held of [0, 3, 4]) {
+      await redis('FLUSHDB');
+      if (held > 0) await seed('jean@example.ch', held);
+      const harness = makeDeps();
+      const res = await call(harness, validReserve({ quantity: 4 }));
+      const body = (await res.json()) as Record<string, unknown>;
+      answers.push({ status: res.status, body });
+      assert.equal(harness.resend.calls, 1, `${held} seats held`);
+    }
+    assert.deepEqual(answers[1], answers[0]);
+    assert.deepEqual(answers[2], answers[0]);
+    assert.equal(answers[0].status, 200);
+  });
+
+  it('reads the show counter once and charges the quota once on the success path', async () => {
+    const commands = await redisCommandsOf(() => call(h, validReserve()));
+    assert.deepEqual(commands.map((command) => command[0]), ['GET', 'EVAL']);
+    assert.deepEqual(commands[0], ['GET', `show:${SYNTH_SHOW_ID}:booked`]);
+    assert.ok(commands[1].includes('quota:cooldown:jean@example.ch'));
   });
 
   it('answers 429 cooldown with Retry-After for a second request, even through another +tag alias', async () => {
@@ -379,6 +396,18 @@ describe('POST /api/reserve with Redis', { skip: redisSkipReason }, () => {
     assert.ok(subject.startsWith('Confirmez votre demande de réservation'));
     for (const part of [text, html]) assert.ok(part.includes('ne sont pas garanties'));
     assert.ok(text.includes('avant le '));
+  });
+
+  it('puts none of the text of the name in the unsolicited mail', async () => {
+    const hostile = 'Évil <script> evil.de/x +41 79 000 00 00';
+    const res = await call(h, validReserve({ name: hostile }));
+    assert.equal(res.status, 200);
+    assert.equal(h.outbox.length, 1);
+    const { subject, text, html } = h.outbox[0];
+    assert.ok(text.startsWith('Bonjour,\n'));
+    for (const fragment of ['Évil', 'script', 'evil.de', '+41', '79 000']) {
+      for (const part of [subject, text, html]) assert.ok(!part.includes(fragment), fragment);
+    }
   });
 
   it('accepts a valid address that starts with a plus sign', async () => {
@@ -447,20 +476,32 @@ describe('POST /api/reserve with Redis', { skip: redisSkipReason }, () => {
     assert.equal(await redis('GET', DAY_KEY), '1');
   });
 
-  it('still answers the mail error when the refund itself fails', async () => {
-    h.resend.behavior = { status: 500, body: '{}' };
+  it('still answers the mail error when the refund itself fails, and keeps the state the failed refund implies', async () => {
+    h.resend.behavior = { status: 500, body: '{"message":"jean@example.ch"}' };
     const real = globalThis.fetch;
+    let refundAttempts = 0;
     globalThis.fetch = async (input, init) => {
-      if (String(init?.body).includes('DECR')) return Response.json({ error: 'upstream failure' }, { status: 500 });
+      if (String(init?.body).includes('DECR')) {
+        refundAttempts += 1;
+        return Response.json({ error: 'upstream failure' }, { status: 500 });
+      }
       return real(input, init);
     };
+    const logs = captureLogs();
     try {
       const res = await call(h, validReserve());
       assert.equal(res.status, 503);
-      assert.equal(((await res.json()) as { code: string }).code, 'email-failed');
+      const text = await res.text();
+      assert.deepEqual(JSON.parse(text), { error: MSG.EMAIL_FAILED, code: 'email-failed' });
+      assert.equal(refundAttempts, 1);
+      assert.match(logs.lines(), /send quota refund error/);
+      assert.ok(containsNone(text + logs.lines(), ['jean', 'Dupont']));
     } finally {
+      logs.restore();
       globalThis.fetch = real;
     }
+    assert.equal(await redis('EXISTS', 'quota:cooldown:jean@example.ch'), 1);
+    assert.equal(await redis('GET', DAY_KEY), '1');
   });
 
   it('refunds against the day of the check even if the clock crosses midnight', async () => {

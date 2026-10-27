@@ -1,3 +1,4 @@
+
 export const SITE_NAME = 'Mélange de Genres';
 export const SITE_URL = 'https://melangedegenres.ch';
 export const DEFAULT_OG_IMAGE = '/og-image.jpg';
@@ -30,14 +31,20 @@ export const PAGE_META: Record<string, PageMeta> = {
   },
   agenda: {
     title: 'Agenda',
-    description:
-      "Retrouvez toutes les dates et lieux des représentations de « 15 minutes » par l'association Mélange de Genres. Réservez dès maintenant.",
+    get description() {
+      return process.env.REACT_APP_SHOW_TICKETING === 'true'
+        ? "Retrouvez toutes les dates et lieux des représentations de « 15 minutes » par l'association Mélange de Genres. Réservez dès maintenant."
+        : "Retrouvez les rendez-vous de l'association Mélange de Genres autour de « 15 minutes ».";
+    },
     path: '/agenda',
   },
   billetterie: {
     title: 'Billetterie',
-    description:
-      "Réservez gratuitement vos places pour « 15 minutes », la comédie musicale originale de Mélange de Genres, au Monique et à la Julienne. Places limitées.",
+    get description() {
+      return process.env.REACT_APP_SHOW_TICKETING === 'true'
+        ? "Réservez gratuitement vos places pour « 15 minutes », la comédie musicale originale de Mélange de Genres, au Monique et à la Julienne. Places limitées."
+        : 'La billetterie de « 15 minutes », la comédie musicale originale de Mélange de Genres, ouvrira prochainement.';
+    },
     path: '/billetterie',
   },
   soutenir: {

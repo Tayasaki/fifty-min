@@ -178,7 +178,7 @@ describe('every endpoint when Redis is down', () => {
   it('E7 answers a generic 503, calls neither Resend nor leaks PII', async () => {
     const h = makeDeps();
     const previousAdmin = process.env.ADMIN_TOKEN;
-    process.env.ADMIN_TOKEN = 'admin-token-value';
+    process.env.ADMIN_TOKEN = 'admin-token-value-0123456789-abcdef';
     const down = redisDown();
     const logs = captureLogs();
     try {
@@ -191,14 +191,14 @@ describe('every endpoint when Redis is down', () => {
         act(h, 'confirm', link.id, link.token),
         act(h, 'cancel', 'ABCDEF01', cancelToken),
         availability(),
-        adminExport(new Request('http://localhost/api/reservations', { headers: { authorization: 'Bearer admin-token-value' } })),
+        adminExport(new Request('http://localhost/api/reservations', { headers: { authorization: 'Bearer admin-token-value-0123456789-abcdef' } })),
       ]);
       for (const res of responses) {
         assert.equal(res.status, 503);
         assert.equal(JSON.stringify(await res.json()), JSON.stringify({ error: ERR.UNAVAILABLE }));
       }
       assert.equal(h.resend.calls, 0);
-      assert.ok(containsNone(logs.lines(), ['jean', 'Dupont', 'admin-token-value', link.token, 'KV_']));
+      assert.ok(containsNone(logs.lines(), ['jean', 'Dupont', 'admin-token-value-0123456789-abcdef', link.token, 'KV_']));
     } finally {
       logs.restore();
       down.restore();

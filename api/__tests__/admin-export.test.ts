@@ -8,7 +8,7 @@ import { claimAtomic, keys, redis } from '../_lib/redis';
 import { GET } from '../reservations';
 import { NOW, SYNTH_SHOW_ID, captureLogs, containsNone, redisDown, registerTestShow } from './helpers/flow';
 
-const TOKEN = 'admin-token-value';
+const TOKEN = 'admin-token-value-0123456789-abcdef';
 const shimFetch = globalThis.fetch;
 let savedToken: string | undefined;
 let showHandle: ReturnType<typeof registerTestShow>;
@@ -95,6 +95,37 @@ describe('admin export authentication (no Redis)', () => {
   it('A10 refuses tokens of another length without throwing', async () => {
     for (const token of ['a', TOKEN + 'x', 'z'.repeat(5000)]) {
       assert.equal((await GET(exportRequest(bearer(token)))).status, 403);
+    }
+  });
+
+  it('A11 answers 503 and never 200 for a 31-character ADMIN_TOKEN, even with the matching Bearer', async () => {
+    const weak = 't'.repeat(31);
+    process.env.ADMIN_TOKEN = weak;
+    for (const headers of [bearer(weak), bearer('wrong'), {}]) {
+      const res = await GET(exportRequest(headers));
+      assert.equal(res.status, 503, JSON.stringify(headers));
+      assert.deepEqual(await res.json(), { error: ERR.UNAVAILABLE });
+    }
+    assert.equal(redisCalls, 0);
+  });
+
+  it('A12 authenticates a 32-character ADMIN_TOKEN and refuses a wrong Bearer with 403', async () => {
+    const minimal = 't'.repeat(32);
+    process.env.ADMIN_TOKEN = minimal;
+    assert.equal((await GET(exportRequest(bearer('t'.repeat(31) + 'x')))).status, 403);
+    assert.equal((await GET(exportRequest(bearer(minimal), 'show=nope'))).status, 404);
+  });
+
+  it('A13 logs a label only when the ADMIN_TOKEN is too short', async () => {
+    const weak = 'w'.repeat(20) + 'secret-part';
+    process.env.ADMIN_TOKEN = weak;
+    const logs = captureLogs();
+    try {
+      await GET(exportRequest(bearer(weak)));
+      assert.match(logs.lines(), /admin export is not configured/);
+      assert.ok(containsNone(logs.lines(), [weak, 'secret-part', String(weak.length)]));
+    } finally {
+      logs.restore();
     }
   });
 
@@ -215,6 +246,15 @@ describe('admin export CSV', { skip: redisSkipReason }, () => {
     } finally {
       logs.restore();
     }
+  });
+
+  it('A14 exports with a 32-character ADMIN_TOKEN', async () => {
+    const minimal = 't'.repeat(32);
+    process.env.ADMIN_TOKEN = minimal;
+    await claim('Jean', 'jean@example.ch');
+    const res = await GET(exportRequest(bearer(minimal)));
+    assert.equal(res.status, 200);
+    assert.ok((await res.text()).includes('Jean'));
   });
 
   it('lists every show when no show is given', async () => {

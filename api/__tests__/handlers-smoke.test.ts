@@ -1,11 +1,16 @@
-import { describe, it, mock, beforeEach, afterEach } from 'node:test';
+import { describe, it, mock, before, after, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { installNoNetwork } from './helpers/redis-rest-shim';
 import { POST as reserve } from '../reserve';
 import { GET as getReservation, POST as postReservation } from '../reservation';
 import { MSG } from '../_lib/http';
+import { SYNTH_SHOW_ID as SHOW_ID, SYNTH_START, registerTestShow } from './helpers/flow';
 
-const SHOW_ID = '2027-02-20-monique';
+let showHandle: ReturnType<typeof registerTestShow>;
+before(() => {
+  showHandle = registerTestShow();
+});
+after(() => showHandle.unregister());
 
 function post(path: string, body: unknown, raw = false): Request {
   return new Request(`http://localhost/api/${path}`, {
@@ -15,10 +20,10 @@ function post(path: string, body: unknown, raw = false): Request {
   });
 }
 
-async function expectError(response: Response, status: number, message: string): Promise<void> {
+async function expectError(response: Response, status: number, message: string, code?: string): Promise<void> {
   assert.equal(response.status, status);
   assert.ok((response.headers.get('content-type') ?? '').startsWith('application/json'));
-  assert.deepEqual(await response.json(), { error: message });
+  assert.deepEqual(await response.json(), code === undefined ? { error: message } : { error: message, code });
 }
 
 const valid = { showId: SHOW_ID, name: 'Jean Dupont', email: 'jean@example.ch', quantity: 2 };
@@ -81,13 +86,13 @@ describe('POST /api/reserve (paths that return before Redis)', () => {
   });
 
   it('closes reservations once the show has started', async () => {
-    mock.method(Date, 'now', () => 1_900_000_000_000);
-    await expectError(await reserve(post('reserve', valid)), 400, 'Les réservations pour cette date sont closes');
+    mock.method(Date, 'now', () => SYNTH_START + 3_600_000);
+    await expectError(await reserve(post('reserve', valid)), 409, MSG.SHOW_STARTED, 'closed');
   });
 });
 
 describe('POST /api/reserve around the show start', () => {
-  const start = new Date('2027-02-20T19:00:00+01:00').getTime();
+  const start = SYNTH_START;
   let calls = 0;
   beforeEach(() => {
     useProductionEnv();
@@ -104,7 +109,7 @@ describe('POST /api/reserve around the show start', () => {
 
   it('closes reservations at the exact start instant', async () => {
     mock.method(Date, 'now', () => start);
-    await expectError(await reserve(post('reserve', valid)), 400, 'Les réservations pour cette date sont closes');
+    await expectError(await reserve(post('reserve', valid)), 409, MSG.SHOW_STARTED, 'closed');
   });
 
   it('refuses a valid request one millisecond before the start without any Redis or email call', async () => {

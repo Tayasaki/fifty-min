@@ -5,7 +5,7 @@
 import { MAX_TICKETS_PER_EMAIL, domainSeatCap, getShow, getVenue, retentionExpiry, showStart, type Show, type Venue } from '../../src/config/shows';
 import type { Deps } from './deps';
 import { EmailError, buildCancelLink, sendCancellation, sendRecap, type EmailDeps } from './email';
-import { canonicalEmail, checkContentType, isReservationsOpen, readJsonBody } from './guard';
+import { canonicalEmail, checkContentType, emailDomain, isReservationsOpen, readJsonBody } from './guard';
 import { ERR, MSG, error, safeEqual } from './http';
 import { loadLinkSecrets, verifyLink, type LinkPayload } from './link';
 import { checkSendQuota } from './quota';
@@ -142,13 +142,12 @@ async function confirmLink(id: string, token: string, deps: Deps): Promise<Respo
   if (started(show, deps)) return error(MSG.SHOW_STARTED, 409, { code: 'closed' });
 
   const canonical = canonicalEmail(payload.email);
-  const domain = canonical.slice(canonical.lastIndexOf('@') + 1);
   let result: Awaited<ReturnType<typeof claimAtomic>>;
   try {
     result = await claimAtomic(
       {
         id, showId: show.id, name: payload.name, email: payload.email, canonicalEmail: canonical, quantity: payload.quantity,
-        capacity: show.capacity, maxPerEmail: MAX_TICKETS_PER_EMAIL, maxPerDomain: domainSeatCap(domain), expireAt: retentionExpiry(show),
+        capacity: show.capacity, maxPerEmail: MAX_TICKETS_PER_EMAIL, maxPerDomain: domainSeatCap(emailDomain(canonical)), expireAt: retentionExpiry(show),
       },
       { now: deps.now }
     );

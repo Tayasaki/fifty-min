@@ -1,19 +1,17 @@
 // POST /api/reserve: validate, verify the captcha, throttle, then mail a signed link.
 // No seat is written here: seats are claimed only when the link is confirmed (reservation-flow.ts).
 
-import { domainSeatCap, getShow, getVenue, MAX_TICKETS_PER_EMAIL } from '../../src/config/shows';
 import type { Deps } from './deps';
 import { EmailError, buildConfirmLink, sendConfirmRequest } from './email';
 import {
   checkContentType, checkMethod, checkOrigin, isHoneypotFilled, isReservationsOpen, readJsonBody, validateReserveFields,
 } from './guard';
 import { ERR, MSG, error } from './http';
-import { loadLinkSecrets, signLink } from './link';
+import { LINK_TTL_SECONDS, loadLinkSecrets, signLink } from './link';
 import { checkSendQuota, refundSendQuota } from './quota';
-import { readClaimState } from './redis';
+import { readBooked } from './redis';
 import { allowedOrigins } from './site';
 
-const LINK_TTL_SECONDS = 48 * 3600;
 const NO_STORE = { 'Cache-Control': 'no-store' };
 
 const linkSent = (expSeconds: number): Response =>
@@ -35,8 +33,9 @@ export async function handleReserve(request: Request, deps: Deps): Promise<Respo
   if (isHoneypotFilled(parsed.body)) return linkSent(Math.floor(deps.now() / 1000) + LINK_TTL_SECONDS);
 
   const validated = validateReserveFields(parsed.body, deps.now);
-  if (!validated.ok) return error(validated.message, validated.status);
+  if (!validated.ok) return error(validated.message, validated.status, { code: validated.code });
   const fields = validated.value;
+  const { show, venue } = fields;
 
   if (!isReservationsOpen(env)) return error(MSG.CLOSED, 403, { code: 'closed' });
 
@@ -56,23 +55,12 @@ export async function handleReserve(request: Request, deps: Deps): Promise<Respo
     return error(ERR.UNAVAILABLE, 503);
   }
 
-  const show = getShow(fields.showId);
-  const venue = show && getVenue(show.venueId);
-  if (!show || !venue) return error(ERR.UNKNOWN_SHOW);
-
-  const domain = fields.canonicalEmail.slice(fields.canonicalEmail.lastIndexOf('@') + 1);
+  // Only the public availability is checked here: the answer must not depend on what an address already holds.
+  // The per-address and per-domain caps are enforced atomically when the link is confirmed.
   try {
-    const state = await readClaimState(show.id, fields.canonicalEmail, domain);
-    const remaining = Math.max(0, show.capacity - state.booked);
+    const remaining = Math.max(0, show.capacity - (await readBooked(show.id)));
     if (fields.quantity > remaining) {
       return error(remaining === 0 ? MSG.FULL : MSG.fewLeft(remaining), 409, { code: 'full', remaining });
-    }
-    const domainCap = domainSeatCap(domain);
-    if (
-      state.mine + fields.quantity > MAX_TICKETS_PER_EMAIL ||
-      (domainCap > 0 && state.theirs + fields.quantity > domainCap)
-    ) {
-      return error(MSG.NOT_POSSIBLE, 409, { code: 'not-possible' });
     }
   } catch (err) {
     console.error('reserve state error', err);
@@ -98,7 +86,6 @@ export async function handleReserve(request: Request, deps: Deps): Promise<Respo
   try {
     await sendConfirmRequest(
       {
-        name: fields.name,
         email: fields.email,
         quantity: fields.quantity,
         show,

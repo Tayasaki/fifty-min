@@ -25,9 +25,11 @@ export class LinkSecretError extends Error {}
 
 const PURPOSE = 'confirm:v1';
 const MAC_PREFIX = `${PURPOSE}\n`;
-const MIN_SECRET_LENGTH = 32;
+/** Shortest accepted LINK_SECRET and ADMIN_TOKEN. */
+export const MIN_SECRET_LENGTH = 32;
+/** Lifetime of a signed confirmation link. */
+export const LINK_TTL_SECONDS = 48 * 3600;
 const MAX_TOKEN_LENGTH = 2048;
-const DEFAULT_TTL_SECONDS = 48 * 3600;
 const BASE64URL = /^[A-Za-z0-9_-]+$/;
 
 export function loadLinkSecrets(env: Record<string, string | undefined>): LinkSecrets | null {
@@ -50,7 +52,7 @@ export function signLink(
   if (!opts.secrets) throw new LinkSecretError('Link secret is not configured');
   const { kid, secret } = opts.secrets.current;
   const nowMs = (opts.now ?? Date.now)();
-  const exp = Math.floor(nowMs / 1000) + (opts.ttlSeconds ?? DEFAULT_TTL_SECONDS);
+  const exp = Math.floor(nowMs / 1000) + (opts.ttlSeconds ?? LINK_TTL_SECONDS);
   const payload: LinkPayload = {
     v: 1,
     purpose: PURPOSE,
