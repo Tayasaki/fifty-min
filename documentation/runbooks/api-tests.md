@@ -79,13 +79,13 @@ The tests never call Upstash. `api/__tests__/helpers/redis-rest-shim.ts` replace
 | `flow-integration.test.ts` | Full flow, 30-way concurrent claims, random-operation invariant, Redis down on every endpoint | mostly |
 | `availability.test.ts`, `admin-export.test.ts` | Cacheable counts, organizer export auth and CSV | partly |
 | `turnstile.test.ts`, `email.test.ts`, `site.test.ts`, `format-date-time.test.ts` | Injected `fetch`, error classes, links per environment | no |
-| `quota-refund.test.ts`, `redis-reads.test.ts` | `refundSendQuota`, `readClaimState`, `readLinkState` | yes |
+| `quota-refund.test.ts`, `redis-reads.test.ts` | `refundSendQuota`, `readBooked`, `readLinkState` | yes |
 
 ## Time-bomb rule
 
 Redis uses the real clock and `EXPIREAT` with a past time deletes the key at once. Real shows are in 2027, so:
 
-- Redis tests use a synthetic `expireAt` (`4102444800`, 2100-01-01 UTC) and injected clocks in 2030 (`deps.now`).
+- Redis tests use a synthetic `expireAt` (`4102444800`, 2100-01-01 UTC) and injected clocks in 2030 or 2031 (`deps.now`) in the unit-level suites, and a synthetic 2099 clock with a 2100 show in the flow suites (`helpers/flow.ts`).
 - Assert a TTL with `EXPIRETIME` (an absolute value), not `TTL`, except for the 600 s cooldown.
 - Only pure helper tests may use real show dates.
 
@@ -113,5 +113,5 @@ Handlers are `handleReserve(request, deps)` and `handleReservationGet/Post(reque
 
 ## Known limits
 
-- `pnpm test` runs the Create React App suite for `src/`. It is separate from `test:api` and currently fails on `main` (`Cannot find module react-router-dom`).
+- `pnpm test` is the CRA runner (watch mode) for `src/`. It is separate from `test:api`; run the UI suite once with `CI=true pnpm run test:ui` (see `ui-tests.md`).
 - No CI workflow exists yet.

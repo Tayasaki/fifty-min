@@ -20,6 +20,7 @@ import {
   NETWORK_ERROR,
   failureText,
   isClosed,
+  isShowStarted,
   isReservationId,
   parseCancelResult,
   parseConfirmResult,
@@ -91,7 +92,7 @@ function stateFromGet(action: ReservationActionKind, id: string, result: ApiResu
     return preview ? stateFromPreview(action, id, preview) : INVALID;
   }
   const { failure } = result;
-  if (failure.kind === 'http' && (failure.status === 400 || failure.status === 404 || isClosed(failure))) return INVALID;
+  if (failure.kind === 'http' && (failure.status === 400 || failure.status === 404 || isClosed(failure) || isShowStarted(failure))) return INVALID;
   return { kind: 'error', message: failureText(failure) };
 }
 
@@ -117,6 +118,7 @@ function stateFromPost(action: ReservationActionKind, preview: Preview, result: 
     return { kind: 'full', remaining: failure.remaining ?? remainingSeats(preview), requested: preview.quantity };
   }
   if (failure.code === 'not-possible') return { kind: 'notPossible', message: failureText(failure) };
+  if (isShowStarted(failure)) return INVALID;
   if (isClosed(failure)) return action === 'confirm' ? { kind: 'closed' } : INVALID;
   if (failure.status === 400 || failure.status === 404) return INVALID;
   return retry(failureText(failure));

@@ -33,6 +33,9 @@ export const CLOSED_COPY = {
   notReserved: 'Vos places ne sont pas réservées.',
 } as const;
 
+/** Owner review: label of a show button once its performance has started. */
+export const STARTED_LABEL = 'Représentation commencée';
+
 export const INVALID_LINK_COPY =
   "Ce lien n'est plus valable : il a expiré, a déjà été utilisé ou la représentation n'est plus ouverte à la réservation. Vous pouvez faire une nouvelle demande sur la billetterie ou nous écrire.";
 

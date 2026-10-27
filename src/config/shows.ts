@@ -82,7 +82,7 @@ export const VENUES: Venue[] = [
   },
 ];
 
-// TODO: confirm Le Monique capacity with the venue (100 for now, they may have 120 seats).
+// Le Monique capacity: 100 is the conservative figure (the venue may have 120 seats). Raising it is safe; lowering it below the booked count overbooks. Open question: launch checklist, step 0.
 export const SHOWS: Show[] = [
   { id: '2027-02-20-monique', venueId: 'monique', date: '2027-02-20T19:00', doorsOpen: '18h30', label: 'Samedi 20 février 2027 — 19h', capacity: 100 },
   { id: '2027-02-21-monique', venueId: 'monique', date: '2027-02-21T17:00', doorsOpen: '16h30', label: 'Dimanche 21 février 2027 — 17h', capacity: 100 },

@@ -1,8 +1,13 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { ERR, MSG, error, safeEqual } from '../_lib/http';
+import { CODE_SHOW_STARTED, ERR, MSG, error, safeEqual } from '../_lib/http';
 
 describe('http helpers', () => {
+  it('names the started-show code apart from the closed gate code', () => {
+    assert.equal(CODE_SHOW_STARTED, 'show-started');
+    assert.notEqual(CODE_SHOW_STARTED, 'closed');
+  });
+
   it('error defaults to 400 with an { error } body', async () => {
     const response = error('x');
     assert.equal(response.status, 400);

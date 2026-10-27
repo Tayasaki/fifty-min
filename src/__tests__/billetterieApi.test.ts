@@ -7,6 +7,7 @@ import {
   failureText,
   isClosed,
   isReservationId,
+  isShowStarted,
   parseAvailability,
   parseCancelResult,
   parseConfirmResult,
@@ -91,10 +92,20 @@ describe('failureText', () => {
   });
 });
 
+describe('isShowStarted', () => {
+  test('is true only for an http failure with code show-started', () => {
+    expect(isShowStarted(http(409, { code: 'show-started' }))).toBe(true);
+    expect(isShowStarted(http(409, { code: 'closed' }))).toBe(false);
+    expect(isShowStarted(http(409, { code: 'full' }))).toBe(false);
+    expect(isShowStarted(http(409))).toBe(false);
+    expect(isShowStarted({ kind: 'network' })).toBe(false);
+  });
+});
+
 describe('isClosed', () => {
   test('is true only for an http failure with code closed', () => {
     expect(isClosed(http(403, { code: 'closed' }))).toBe(true);
-    expect(isClosed(http(409, { code: 'closed' }))).toBe(true);
+    expect(isClosed(http(409, { code: 'show-started' }))).toBe(false);
     expect(isClosed(http(403, { code: 'captcha' }))).toBe(false);
     expect(isClosed(http(403))).toBe(false);
     expect(isClosed({ kind: 'network' })).toBe(false);

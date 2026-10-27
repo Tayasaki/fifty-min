@@ -15,12 +15,12 @@ Server contract for the reservation flow in `api/`. A request mails a signed lin
 
 | Endpoint | Success | Errors (status, `code`) |
 |---|---|---|
-| `POST /api/reserve` `{showId, name, email, quantity, turnstileToken, website?}` | `200 {ok:true, linkExpiresAt: ISO}` (no `reservationId`); a filled honeypot returns the same shape | 405, 415, 403 (origin), 413, 400 (fields), 409 `closed` (show started), 403 `closed` (gate), 400 `captcha`, 409 `full` (+`remaining`), 429 `cooldown` (+`Retry-After`, `retryAfterSeconds`), 429 `budget`, 400 `bad-address`, 503 `email-failed` (quota refunded), 503 `email-slow` (not refunded), 503 |
+| `POST /api/reserve` `{showId, name, email, quantity, turnstileToken, website?}` | `200 {ok:true, linkExpiresAt: ISO}` (no `reservationId`); a filled honeypot returns the same shape | 405, 415, 403 (origin), 413, 400 (fields), 409 `show-started` (show started), 403 `closed` (gate), 400 `captcha`, 409 `full` (+`remaining`), 429 `cooldown` (+`Retry-After`, `retryAfterSeconds`), 429 `budget`, 400 `bad-address`, 503 `email-failed` (quota refunded), 503 `email-slow` (not refunded), 503 |
 | `GET /api/reservation?id&token` with a signed link | `200 {id, showId, name, quantity, status:'claimable'\|'full'\|'confirmed'\|'closed', availability:number, open:boolean}` | 400 `Lien invalide`, 404, 503 |
 | `GET /api/reservation?id&token` with a cancel token | `200 {id, showId, name, quantity, status:'confirmed'\|'cancelled', closed:boolean}` | 400, 404, 503 |
-| `POST /api/reservation {action:'confirm', id, token}` | `200 {ok:true, status:'confirmed', id, alreadyConfirmed:boolean, emailSent:boolean\|null}` (`null`: already confirmed, no mail attempted) | 400, 413, 415, 403 `closed`, 404, 409 `closed` (show started), 409 `full` (+`remaining`), 409 `not-possible`, 503 |
-| `POST /api/reservation {action:'cancel', id, token}` | `200 {ok:true, status:'cancelled', id, alreadyCancelled:boolean, emailSent:boolean\|null}` | 400, 413, 415, 404, 409 `closed`, 503 |
-| `GET /api/availability` | `200 {availability:{[showId]:number}, open:boolean}`, `Cache-Control: public, s-maxage=10, stale-while-revalidate=30` | `503` with `no-store` |
+| `POST /api/reservation {action:'confirm', id, token}` | `200 {ok:true, status:'confirmed', id, alreadyConfirmed:boolean, emailSent:boolean\|null}` (`null`: already confirmed, no mail attempted) | 400, 413, 415, 403 `closed`, 404, 409 `show-started`, 409 `full` (+`remaining`), 409 `not-possible`, 503 |
+| `POST /api/reservation {action:'cancel', id, token}` | `200 {ok:true, status:'cancelled', id, alreadyCancelled:boolean, emailSent:boolean\|null}` | 400, 413, 415, 404, 409 `show-started`, 503 |
+| `GET /api/availability` | `200 {availability:{[showId]:number}, open:boolean}`, `Cache-Control: public, s-maxage=10` (no browser-side staleness; the closing delay is about 10 s) | `503` with `no-store` |
 | `GET /api/reservations?show=` (organizer) | `200 text/csv`, `no-store`; an omitted `?show=` exports all shows | 401 (no Bearer header), 403 (wrong token), 404 unknown show, 503 (also when `ADMIN_TOKEN` is unset or shorter than 32 characters) |
 
 `status:'full'` on the preview means the quantity no longer fits; a confirm can still fail with `not-possible` (address or domain cap), so the confirm button needs an error state. `POST /api/reserve` never answers `not-possible`: see the neutral wording rule. `emailSent:false` means the seats are held but the recap mail failed; show the reservation number.
@@ -35,8 +35,8 @@ Server contract for the reservation flow in `api/`. A request mails a signed lin
 
 ## Gates and rules
 
-- `RESERVATIONS_OPEN` must be `true` (trimmed, case-insensitive) for `POST /api/reserve` and for confirm. Preview and cancel always work; `open` is echoed. A change needs a redeploy on Vercel.
-- Reserve, confirm and cancel are all refused with `409 closed` from the start instant of the show (`now >= start`); `403 closed` is the `RESERVATIONS_OPEN` gate on reserve and confirm.
+- `RESERVATIONS_OPEN` must be `true` (trimmed, case-insensitive) for `POST /api/reserve` and for confirm. Preview and cancel always work; `open` is echoed. A change needs a redeploy on Vercel (variables bind at deploy time), then about 10 s of CDN cache.
+- Reserve, confirm and cancel are all refused with `409 show-started` from the start instant of the show (`now >= start`); `403 closed` is the `RESERVATIONS_OPEN` gate on reserve and confirm only. `closed` therefore means the whole service is closed, `show-started` means that one show is. On confirm the gate is checked first; on reserve the fields (including the show start) are validated before the gate.
 - `ADMIN_TOKEN` and `LINK_SECRET` must be at least 32 characters (`MIN_SECRET_LENGTH`); a shorter `ADMIN_TOKEN` answers 503 before any Bearer check.
 - The request mail greets with `Bonjour,` and carries no text chosen by the requester: it is the only mail sent without proof of mailbox ownership. Recap and cancellation mails greet by name.
 - Origin must match the deployment (production site, or the preview hosts) and is checked on `POST /api/reserve` only; confirm and cancel authenticate by their token. The secret `TURNSTILE_SECRET_KEY` is required in every environment (a missing secret is a `503`, test keys go in the env value).

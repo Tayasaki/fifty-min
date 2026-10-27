@@ -4,7 +4,7 @@ import { join } from 'path';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import TicketingSection from '../components/sections/TicketingSection';
-import { CONTACT_EMAIL, CLOSED_COPY, PRIVACY_NOTICE, SUCCESS_TITLE, UNAVAILABLE_COPY } from '../config/billetterieCopy';
+import { CONTACT_EMAIL, CLOSED_COPY, PRIVACY_NOTICE, STARTED_LABEL, SUCCESS_TITLE, UNAVAILABLE_COPY } from '../config/billetterieCopy';
 import { MAX_TICKETS_PER_EMAIL, RECORD_RETENTION_DAYS, SHOWS } from '../config/shows';
 import { CLIENT_ERROR, GENERIC_ERROR, NETWORK_ERROR, SERVER_ERROR } from '../lib/billetterieApi';
 import { formatDateTime } from '../lib/formatDateTime';
@@ -541,8 +541,73 @@ const BANNER_CASES: ErrorCase[] = [
 
 const CLOSED_CASES: Array<{ name: string; respond: () => Response }> = [
   { name: 'closed 403 (gate)', respond: () => fakeResponse(403, { error: 'Fermé.', code: 'closed' }) },
-  { name: 'closed 409 (show started)', respond: () => fakeResponse(409, { error: 'La représentation a commencé.', code: 'closed' }) },
 ];
+
+const STARTED_MESSAGE = 'La représentation a commencé.';
+
+describe('a show that has started', () => {
+  const startedReserve = () => fakeResponse(409, { error: STARTED_MESSAGE, code: 'show-started' });
+
+  test('does not close the form for every show: no closed panel, the message stays in the form', async () => {
+    server.reserve = startedReserve;
+    await readyToSubmit();
+    const before = turnstile.widgets.length;
+    const getsBefore = gets();
+    await submit();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(STARTED_MESSAGE);
+    expect(screen.queryByText(CLOSED_COPY.text)).not.toBeInTheDocument();
+    expect(submitButton()).toBeDisabled();
+    giveToken('fresh-token');
+    expect(submitButton()).toBeDisabled();
+
+    await waitFor(() => expect(turnstile.widgets).toHaveLength(before + 1));
+    await waitFor(() => expect(gets()).toBe(getsBefore + 1));
+    await settle();
+    expect(gets()).toBe(getsBefore + 1);
+    expect(posts()).toHaveLength(1);
+  });
+
+  test('disables only the started show and labels it', async () => {
+    server.reserve = startedReserve;
+    await readyToSubmit();
+    await submit();
+    await screen.findByRole('alert');
+
+    expect(showButton(SHOW.label)).toBeDisabled();
+    expect(showButton(SHOW.label)).toHaveTextContent(STARTED_LABEL);
+    expect(showButton(SHOW.label)).not.toHaveTextContent(/place/);
+    expect(showButton(OTHER_SHOW.label)).toBeEnabled();
+    expect(showButton(OTHER_SHOW.label)).not.toHaveTextContent(STARTED_LABEL);
+  });
+
+  test('keeps the other shows bookable: the next booking goes through', async () => {
+    server.reserve = startedReserve;
+    await readyToSubmit();
+    await submit();
+    await screen.findByRole('alert');
+
+    server.reserve = okReserve;
+    userEvent.click(showButton(OTHER_SHOW.label));
+    expect(await screen.findByRole('heading', { name: OTHER_SHOW.label })).toBeInTheDocument();
+    await waitFor(() => expect(turnstile.live()).toHaveLength(1));
+    fillForm();
+    giveToken('second-token');
+    userEvent.click(submitButton());
+    await waitFor(() => expect(posts()).toHaveLength(2));
+    expect(JSON.parse(String(posts()[1][1]?.body)).showId).toBe(OTHER_SHOW.id);
+    await screen.findByText(SUCCESS_TITLE);
+  });
+
+  test('a 403 closed still closes everything', async () => {
+    server.reserve = () => fakeResponse(403, { error: 'Fermé.', code: 'closed' });
+    await readyToSubmit();
+    await submit();
+    expect(await screen.findByText(CLOSED_COPY.text)).toBeInTheDocument();
+    expect(showButton(OTHER_SHOW.label)).toBeDisabled();
+    expect(showButton(SHOW.label)).not.toHaveTextContent(STARTED_LABEL);
+  });
+});
 
 describe('errors', () => {
   test.each(BANNER_CASES)('$name: one widget epoch, token cleared, one availability refetch', async ({ respond, text }) => {

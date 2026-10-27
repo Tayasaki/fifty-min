@@ -87,7 +87,7 @@ describe('POST /api/reserve (paths that return before Redis)', () => {
 
   it('closes reservations once the show has started', async () => {
     mock.method(Date, 'now', () => SYNTH_START + 3_600_000);
-    await expectError(await reserve(post('reserve', valid)), 409, MSG.SHOW_STARTED, 'closed');
+    await expectError(await reserve(post('reserve', valid)), 409, MSG.SHOW_STARTED, 'show-started');
   });
 });
 
@@ -109,7 +109,7 @@ describe('POST /api/reserve around the show start', () => {
 
   it('closes reservations at the exact start instant', async () => {
     mock.method(Date, 'now', () => start);
-    await expectError(await reserve(post('reserve', valid)), 409, MSG.SHOW_STARTED, 'closed');
+    await expectError(await reserve(post('reserve', valid)), 409, MSG.SHOW_STARTED, 'show-started');
   });
 
   it('refuses a valid request one millisecond before the start without any Redis or email call', async () => {

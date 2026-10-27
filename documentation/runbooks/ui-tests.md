@@ -25,6 +25,8 @@ Pitfall: `pnpm test -- --watchAll=false` forwards the `--` to react-scripts, whi
 
 Jest 27 ignores package `exports`. Three imports are exports-only or have a broken `main`, so `package.json` maps them to files: `react-router-dom` (its `main` does not exist), `react-router/dom` and `@vercel/analytics/react`. Symptom if a path moves: `Cannot find module 'react-router-dom' from 'src/App.tsx'`. Fix: `pnpm add react-router@<installed version>` and point the mapper at `node_modules/react-router/...`.
 
+The `react-router/dom` entry points into pnpm's hoisted layout (`node_modules/.pnpm/node_modules/react-router/dist/development/dom-export.js`), so it depends on how pnpm lays out `node_modules`. Re-check it after any dependency bump or pnpm major change: run `CI=true pnpm run test:ui` and, if the module cannot be found, update that path.
+
 `testMatch` limits collection to `*.test.ts(x)`. CRA's default would run every file under `__tests__/` as a suite, including `src/__tests__/helpers/*`.
 
 `src/setupTests.ts` adds what jsdom 16 lacks: `TextEncoder`/`TextDecoder`, an `IntersectionObserver` stub (framer-motion), `window.scrollTo`, `scrollIntoView`.
@@ -63,6 +65,7 @@ Code decides behaviour; the server `error` text is the wording (shown as a React
 |------|--------------|-------------------------|
 | `captcha`, `cooldown`, `budget`, `bad-address`, `email-failed`, `email-slow`, field errors | message, widget remounted, availability refetched once | n/a |
 | `full` | message, quantity clamped to `remaining`, widget remounted | "complet" or "il ne reste que N place(s)" |
-| `closed` | closed panel replaces the form | closed panel (confirm) or neutral invalid text |
+| `closed` (403, the `RESERVATIONS_OPEN` gate) | closed panel replaces the form | closed panel (confirm) or neutral invalid text |
+| `show-started` (409) | that show's button is disabled and labelled, the others stay bookable; the message stays in the form | neutral invalid text (confirm and cancel) |
 | `not-possible` | never returned by `/reserve` | terminal neutral text with the contact address |
 | network error or 5xx on confirm | n/a | stays on the preview with a banner, retry is safe (idempotent) |

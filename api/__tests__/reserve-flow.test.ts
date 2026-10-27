@@ -223,11 +223,19 @@ noRedisSuite('POST /api/reserve authz and abuse (nothing reaches Redis or Resend
     untouched();
   });
 
+  it('validates the show start before the gate on reserve (show-started even while the gate is closed)', async () => {
+    const closed = makeDeps({ env: makeEnv({ RESERVATIONS_OPEN: undefined }) });
+    closed.clock.now = SYNTH_START;
+    const res = await call(closed, validReserve());
+    assert.equal(res.status, 409);
+    assert.deepEqual(await res.json(), { error: MSG.SHOW_STARTED, code: 'show-started' });
+  });
+
   it('closes requests at the exact start instant', async () => {
     h.clock.now = SYNTH_START;
     const res = await call(h, validReserve());
     assert.equal(res.status, 409);
-    assert.deepEqual(await res.json(), { error: MSG.SHOW_STARTED, code: 'closed' });
+    assert.deepEqual(await res.json(), { error: MSG.SHOW_STARTED, code: 'show-started' });
     untouched();
   });
 

@@ -23,6 +23,9 @@ export function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(digest(a), digest(b));
 }
 
+/** A started show answers 409 with this code; `closed` (403) is reserved for the RESERVATIONS_OPEN gate. */
+export const CODE_SHOW_STARTED = 'show-started';
+
 /** User-facing strings shared by several handlers. */
 export const ERR = {
   INVALID_REQUEST: 'Requête invalide',

@@ -6,7 +6,7 @@ import { MAX_TICKETS_PER_EMAIL, domainSeatCap, getShow, getVenue, retentionExpir
 import type { Deps } from './deps';
 import { EmailError, buildCancelLink, sendCancellation, sendRecap, type EmailDeps } from './email';
 import { canonicalEmail, checkContentType, emailDomain, isReservationsOpen, readJsonBody } from './guard';
-import { ERR, MSG, error, safeEqual } from './http';
+import { CODE_SHOW_STARTED, ERR, MSG, error, safeEqual } from './http';
 import { loadLinkSecrets, verifyLink, type LinkPayload } from './link';
 import { checkSendQuota } from './quota';
 import { claimAtomic, getReservation, readLinkState, releaseAtomic, type ReservationRecord } from './redis';
@@ -139,7 +139,7 @@ async function confirmLink(id: string, token: string, deps: Deps): Promise<Respo
   const { payload, show, venue } = verified;
 
   if (!isReservationsOpen(deps.env)) return error(MSG.CLOSED, 403, { code: 'closed' });
-  if (started(show, deps)) return error(MSG.SHOW_STARTED, 409, { code: 'closed' });
+  if (started(show, deps)) return error(MSG.SHOW_STARTED, 409, { code: CODE_SHOW_STARTED });
 
   const canonical = canonicalEmail(payload.email);
   let result: Awaited<ReturnType<typeof claimAtomic>>;
@@ -162,7 +162,7 @@ async function confirmLink(id: string, token: string, deps: Deps): Promise<Respo
     case 'blocked':
       return notFound();
     case 'closed':
-      return error(MSG.SHOW_STARTED, 409, { code: 'closed' });
+      return error(MSG.SHOW_STARTED, 409, { code: CODE_SHOW_STARTED });
     case 'full':
       return error(result.remaining <= 0 ? MSG.FULL : MSG.fewLeft(result.remaining), 409, { code: 'full', remaining: Math.max(0, result.remaining) });
     case 'email-limit':
@@ -182,7 +182,7 @@ async function cancelReservation(id: string, token: string, deps: Deps): Promise
   const found = await findByCancelToken(id, token);
   if (!found.ok) return found.response;
   const { record, raw, show, venue } = found;
-  if (started(show, deps)) return error(MSG.SHOW_STARTED, 409, { code: 'closed' });
+  if (started(show, deps)) return error(MSG.SHOW_STARTED, 409, { code: CODE_SHOW_STARTED });
 
   let released: Awaited<ReturnType<typeof releaseAtomic>>;
   try {

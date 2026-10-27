@@ -61,7 +61,13 @@ describe('GET /api/availability', { skip: redisSkipReason }, () => {
   it('is cacheable at the CDN for ten seconds', async () => {
     const res = await call();
     assert.equal(res.status, 200);
-    assert.equal(res.headers.get('cache-control'), 'public, s-maxage=10, stale-while-revalidate=30');
+    assert.equal(res.headers.get('cache-control'), 'public, s-maxage=10');
+  });
+
+  it('never lets a browser serve a stale body: no stale-while, no max-age', async () => {
+    const value = (await call()).headers.get('cache-control') ?? '';
+    assert.doesNotMatch(value, /stale-while/);
+    assert.doesNotMatch(value, /(^|[ ,])max-age=/);
   });
 
   it('uses exactly one HTTP call and writes nothing', async () => {

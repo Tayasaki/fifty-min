@@ -1,12 +1,12 @@
 ---
 type: analysis
 skill: x-analyze
-status: draft
+status: current
 review_trigger: "on release"
 created: 2026-10-27
 last_updated: 2026-10-27
 target: "billetterie feature (api/, src/config/shows.ts, ticketing components) at 8dd1d58"
-related: [documentation/billetterie.md]
+related: [documentation/billetterie.md, documentation/decisions/ADR-002-billetterie-claim-on-confirm.md, documentation/runbooks/billetterie-launch-checklist.md]
 ---
 
 # Billetterie: production-readiness gaps
@@ -78,3 +78,18 @@ keys and Lua; docs drift (`ARCHITECTURE.md` site URL and missing `api/`, Agenda 
 Items 1-6 above (~15h) plus the sweep rework (~3h) cover most of the abuse, availability and privacy risk. The
 largest cheap wins: CSV escaping (0.5h), email canonicalisation (1h), refetch-on-error (0.5h), admin token hardening
 (1.5h).
+
+## Resolution (initiative billetterie-claim-on-confirm)
+
+The six must-fix gaps are closed in code on the branch `initiative/billetterie-claim-on-confirm`. Nothing is deployed yet.
+
+| # | Gap | Closed by |
+|---|-----|-----------|
+| 1 | No abuse protection on `POST /api/reserve` | ADR-002 claim-on-confirm; M3 (Turnstile, send quota); one WAF rule remains a launch step |
+| 2 | Per-email cap and name field bypassable | M1/M2 (canonical email, name validation); caps enforced at confirm |
+| 3 | Email provider readiness and honest failures | M3/M4 (timeouts, error classes, honest `emailSent`); Resend plan remains a launch step |
+| 4 | Preview/production separation | M3 (derived base URL); one database per environment remains a launch step |
+| 5 | Privacy: retention and notice | M2 (`EXPIREAT`), M4 (notice), M5 (`documentation/billetterie.md` erasure procedure) |
+| 6 | No server-side open/closed switch | M3 (`RESERVATIONS_OPEN`, `open` in availability), M5 (redeploy-to-close procedure) |
+
+Still open, tracked in `documentation/runbooks/billetterie-launch-checklist.md`: Resend plan and domain verification, Upstash environment scoping, the Vercel rate-limit rule.

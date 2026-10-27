@@ -1,5 +1,5 @@
 import { MAX_TICKETS_PER_EMAIL, getShow, getVenue, showStart, type Show, type Venue } from '../../src/config/shows';
-import { ERR, MSG } from './http';
+import { CODE_SHOW_STARTED, ERR, MSG } from './http';
 
 export interface ReserveFields {
   showId: string;
@@ -137,7 +137,7 @@ export function validateReserveFields(
   const show = getShow(showId);
   const venue = show && getVenue(show.venueId);
   if (!show || !venue) return fail(400, ERR.UNKNOWN_SHOW);
-  if (now() >= showStart(show).getTime()) return fail(409, MSG.SHOW_STARTED, 'closed');
+  if (now() >= showStart(show).getTime()) return fail(409, MSG.SHOW_STARTED, CODE_SHOW_STARTED);
 
   const name = validateName(body.name);
   if (!name.ok) return fail(400, name.message);

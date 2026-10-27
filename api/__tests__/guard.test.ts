@@ -285,7 +285,7 @@ describe('validateReserveFields', () => {
 
   it('closes at the show start and accepts 1 ms before', () => {
     const closed = validateReserveFields(base, () => START);
-    assert.deepEqual(closed, { ok: false, status: 409, code: 'closed', message: MSG.SHOW_STARTED });
+    assert.deepEqual(closed, { ok: false, status: 409, code: 'show-started', message: MSG.SHOW_STARTED });
     assert.equal(validateReserveFields(base, () => START - 1).ok, true);
   });
 

@@ -4,7 +4,7 @@ import { Button } from '../ui/button';
 import { MapPin, Clock, Ticket, MailCheck, AlertCircle, Accessibility } from 'lucide-react';
 import { MAX_TICKETS_PER_EMAIL, SHOWS, VENUES, type Show, getVenue } from '../../config/shows';
 import { getTurnstileSiteKey } from '../../config/features';
-import { CLOSED_COPY, PRIVACY_NOTICE, SUCCESS_TITLE, UNAVAILABLE_COPY, contactMailto, successText } from '../../config/billetterieCopy';
+import { CLOSED_COPY, PRIVACY_NOTICE, STARTED_LABEL, SUCCESS_TITLE, UNAVAILABLE_COPY, contactMailto, successText } from '../../config/billetterieCopy';
 import { cn } from '../../lib/utils';
 import { suggestEmail } from '../../lib/emailTypos';
 import { formatDateTime } from '../../lib/formatDateTime';
@@ -13,6 +13,7 @@ import {
   type AvailabilitySnapshot,
   failureText,
   isClosed,
+  isShowStarted,
   parseAvailability,
   parseReserveSuccess,
   requestAvailability,
@@ -75,15 +76,19 @@ function ReservationForm({
   show,
   remaining,
   siteKey,
+  started,
   onRefresh,
   onClosed,
+  onShowStarted,
   onSuccess,
 }: {
   show: Show;
   remaining: number | undefined;
   siteKey: string;
+  started: boolean;
   onRefresh: () => void;
   onClosed: () => void;
+  onShowStarted: () => void;
   onSuccess: (state: SuccessState) => void;
 }) {
   const [name, setName] = useState('');
@@ -123,6 +128,7 @@ function ReservationForm({
     }
     onRefresh();
     if (isClosed(failure)) onClosed();
+    else if (isShowStarted(failure)) onShowStarted();
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -259,7 +265,7 @@ function ReservationForm({
         </p>
       )}
 
-      <Button type="submit" variant="dark" size="lg" className="rounded-full w-full" disabled={loading || token === null || soldOut}>
+      <Button type="submit" variant="dark" size="lg" className="rounded-full w-full" disabled={loading || token === null || soldOut || started}>
         {loading ? 'Réservation en cours…' : 'Réserver gratuitement'}
       </Button>
     </form>
@@ -313,6 +319,7 @@ function TicketingPanel() {
   const siteKey = getTurnstileSiteKey();
   const [snapshot, setSnapshot] = useState<AvailabilitySnapshot | null>(null);
   const [closedByServer, setClosedByServer] = useState(false);
+  const [startedIds, setStartedIds] = useState<ReadonlySet<string>>(new Set());
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [success, setSuccess] = useState<SuccessState | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -381,27 +388,28 @@ function TicketingPanel() {
                     {SHOWS.filter((s) => s.venueId === venue.id).map((show) => {
                       const remaining = availability?.[show.id];
                       const soldOut = remaining === 0;
+                      const started = startedIds.has(show.id);
                       const selected = show.id === selectedId;
                       return (
                         <li key={show.id}>
                           <button
                             type="button"
-                            disabled={soldOut || closed}
+                            disabled={soldOut || closed || started}
                             onClick={() => selectShow(show.id)}
                             className={cn(
                               'w-full flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left text-sm transition-colors',
                               selected
                                 ? 'border-purple bg-purple/10'
                                 : 'border-black/8 bg-white hover:border-purple/60',
-                              soldOut && 'opacity-50 cursor-not-allowed hover:border-black/8'
+                              (soldOut || started) && 'opacity-50 cursor-not-allowed hover:border-black/8'
                             )}
                           >
                             <span className="flex items-center gap-2 text-text-primary">
                               <Clock size={13} className="text-purple shrink-0" />
                               {show.label}
                             </span>
-                            <span className={cn('text-xs whitespace-nowrap', soldOut ? 'text-red-700' : 'text-teal-deep')}>
-                              {remainingLabel(remaining)}
+                            <span className={cn('text-xs whitespace-nowrap', soldOut || started ? 'text-red-700' : 'text-teal-deep')}>
+                              {started ? STARTED_LABEL : remainingLabel(remaining)}
                             </span>
                           </button>
                         </li>
@@ -459,8 +467,10 @@ function TicketingPanel() {
                         show={selectedShow}
                         remaining={availability?.[selectedShow.id]}
                         siteKey={siteKey}
+                        started={startedIds.has(selectedShow.id)}
                         onRefresh={() => void loadAvailability()}
                         onClosed={() => setClosedByServer(true)}
+                        onShowStarted={() => setStartedIds((ids) => new Set(ids).add(selectedShow.id))}
                         onSuccess={(s) => {
                           setSuccess(s);
                           setSelectedId(null);

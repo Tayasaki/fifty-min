@@ -20,11 +20,11 @@ Source: ADR-002 (proposed), audit `analysis-billetterie.md`. Type: Feature. Esti
 
 | # | Name | Value | Status | Deployable |
 |---|------|-------|--------|------------|
-| M1 | Test harness and pure modules | 25% | planned | Yes (no behaviour change) |
-| M2 | Redis lifecycle and send quota | 25% | planned | No |
-| M3 | API flow, email and admin hardening | 30% | planned | No |
-| M4 | Frontend: Turnstile, notice, honest states | 15% | planned | After M4 (with M1-M3) |
-| M5 | Config, docs and pre-launch checklist | 5% | planned | After M5 |
+| M1 | Test harness and pure modules | 25% | complete | Yes (no behaviour change) |
+| M2 | Redis lifecycle and send quota | 25% | complete | No |
+| M3 | API flow, email and admin hardening | 30% | complete | No |
+| M4 | Frontend: Turnstile, notice, honest states | 15% | complete | After M4 (with M1-M3) |
+| M5 | Config, docs and pre-launch checklist | 5% | in review | After M5 |
 
 ### M1: Test harness and pure modules
 Objective: a runnable test setup for `api/` and the three pure modules everything else depends on.
@@ -55,10 +55,13 @@ Dependencies: M3.
 
 ### M5: Config, docs and pre-launch checklist
 Objective: configuration and documentation match the code; a launch checklist exists for the manual steps.
-Scope: `vercel.json` (`Referrer-Policy` headers), `documentation/billetterie.md` rewrite with env matrix,
-`CLAUDE.md` and `ARCHITECTURE.md` (`api/` entries, test command), `documentation/decisions/INDEX.md` and ADR-002
-acceptance, launch checklist for dashboard tasks the loop cannot do (Upstash database per environment, Resend plan and
-domain, Turnstile keys, Vercel rate-limit rule, `RESERVATIONS_OPEN`, clearing test data).
+Scope as shipped: `vercel.json` (frozen-lockfile install, `Referrer-Policy`, `X-Content-Type-Options`,
+`X-Frame-Options`, report-only CSP), `show-started` error code, availability cache without background revalidation,
+`documentation/billetterie.md` rewrite with env matrix and erasure procedure, `CLAUDE.md` and `ARCHITECTURE.md`
+(`api/` entries, test commands), `documentation/decisions/INDEX.md` (accepted ADRs only), and
+`documentation/runbooks/billetterie-launch-checklist.md` for the dashboard tasks the loop cannot do (Upstash database per
+environment, Resend plan and domain, Turnstile keys, Vercel rate-limit rule, `RESERVATIONS_OPEN`, clearing test data).
+ADR-002 acceptance is the owner's decision: see the checklist, step 0.
 Dependencies: M4.
 
 ## Dependency graph
@@ -74,8 +77,9 @@ into production. Consequences for the loop:
 - First commit after `billeterie` is `docs(billetterie): add production-readiness audit and ADR-002`; the scaffold
   commit follows it. Milestone 1's review base is the scaffold commit (passed as `scaffoldSha` at launch).
 - On `/x-initiative continue`, derive the scaffold commit as `git rev-list initiative/billetterie-claim-on-confirm
-  ^billeterie | sed -n 2p` (the second commit on the branch), not `^main | tail -1`, which would resolve to the first
-  billetterie commit and pull the whole feature into milestone 1's review.
+  ^billeterie | tail -2 | head -1` (the list is newest first, so the scaffold commit is the second line from the end,
+  right after the audit commit), not `^main | tail -1`, which would resolve to the first billetterie commit and pull
+  the whole feature into milestone 1's review.
 - Nothing is pushed by the loop. Open the PR against `billeterie` (or retarget after PR 2 merges).
 
 Constraints for every stage: pnpm only, TypeScript strict, relative imports, no TODO comments, tests in `__tests__/`
@@ -83,4 +87,5 @@ or `tests/`, and **no AI attribution lines in commit messages** (no `Co-Authored
 
 ## Current focus
 
-M1 (plan).
+M5 (implemented, in review). After the loop's gate passes M5 becomes `complete`; then the owner works through
+`documentation/runbooks/billetterie-launch-checklist.md`.

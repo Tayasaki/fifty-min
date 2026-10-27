@@ -19,6 +19,7 @@ let showHandle: ReturnType<typeof registerTestShow>;
 before(() => {
   showHandle = registerTestShow();
 });
+const registered = () => showHandle.show;
 after(() => showHandle.unregister());
 
 type Json = Record<string, unknown>;
@@ -224,12 +225,32 @@ describe('/api/reservation authz (nothing reaches Redis or Resend)', () => {
     untouched();
   });
 
+  it('F4b lets the gate win over the show start on confirm (403 closed, not show-started)', async () => {
+    const closed = makeDeps({ env: makeEnv({ RESERVATIONS_OPEN: undefined }) });
+    const link = makeLink({}, { ttlSeconds: 400 * 86400 });
+    closed.clock.now = SYNTH_START;
+    const res = await confirm(closed, link.id, link.token);
+    assert.equal(res.status, 403);
+    assert.deepEqual(await res.json(), { error: MSG.CLOSED, code: 'closed' });
+    untouched();
+  });
+
+  it('F4c maps a claim that finds the retention window over to show-started', async () => {
+    const link = makeLink({}, { ttlSeconds: 400 * 86400 });
+    // The pre-check reads the clock before the show start; only claimAtomic sees a clock past the retention expiry.
+    const beyond = retentionExpiry(registered()) * 1000 + 1000;
+    h.deps.now = () => (new Error().stack ?? '').includes('claimAtomic') ? beyond : h.clock.now;
+    const res = await confirm(h, link.id, link.token);
+    assert.equal(res.status, 409);
+    assert.deepEqual(await res.json(), { error: MSG.SHOW_STARTED, code: 'show-started' });
+  });
+
   it('F4 refuses to confirm at the exact start instant before any Redis call', async () => {
     const link = makeLink({}, { ttlSeconds: 400 * 86400 });
     h.clock.now = SYNTH_START;
     const res = await confirm(h, link.id, link.token);
     assert.equal(res.status, 409);
-    assert.deepEqual(await res.json(), { error: MSG.SHOW_STARTED, code: 'closed' });
+    assert.deepEqual(await res.json(), { error: MSG.SHOW_STARTED, code: 'show-started' });
     untouched();
   });
 
@@ -615,7 +636,7 @@ describe('/api/reservation with Redis', { skip: redisSkipReason }, () => {
       h.clock.now = SYNTH_START;
       const res = await cancel(h, record.id, record.token);
       assert.equal(res.status, 409);
-      assert.deepEqual(await res.json(), { error: MSG.SHOW_STARTED, code: 'closed' });
+      assert.deepEqual(await res.json(), { error: MSG.SHOW_STARTED, code: 'show-started' });
       assert.equal(await snapshot(), before);
     });
 

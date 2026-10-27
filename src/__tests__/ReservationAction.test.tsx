@@ -189,12 +189,20 @@ describe('confirm: preview (GET)', () => {
     ['400', json(400, { error: 'Lien invalide' })],
     ['404', json(404, { error: 'Introuvable' })],
     ['403 closed', json(403, { error: 'Fermé', code: 'closed' })],
-    ['409 closed', json(409, { error: 'Fermé', code: 'closed' })],
+    ['409 show-started', json(409, { error: 'Fermé', code: 'show-started' })],
   ])('a %s preview answer is the neutral invalid state', async (_label, response) => {
     routes(response);
     const { container } = renderAction();
     expect(await screen.findByText(INVALID_LINK_COPY)).toBeInTheDocument();
     expect(container).not.toHaveTextContent(/Lien invalide|Introuvable|Fermé/);
+    noButton();
+  });
+
+  test('a 409 show-started cancel preview is the neutral invalid state, not the closed panel', async () => {
+    routes(json(409, { error: 'Fermé', code: 'show-started' }));
+    const { container } = renderAction('cancel');
+    expect(await screen.findByText(INVALID_LINK_COPY)).toBeInTheDocument();
+    expect(container).not.toHaveTextContent(CLOSED_COPY.text);
     noButton();
   });
 
@@ -334,9 +342,16 @@ describe('confirm: submit (POST)', () => {
     noButton();
   });
 
+  test('a 409 show-started after the click is the neutral invalid state, not the closed panel', async () => {
+    routes(json(200, confirmPreview()), json(409, { error: 'Fermé', code: 'show-started' }));
+    const { container } = await readyAndClick();
+    expect(await screen.findByText(INVALID_LINK_COPY)).toBeInTheDocument();
+    expect(container).not.toHaveTextContent(CLOSED_COPY.text);
+    noButton();
+  });
+
   test.each([
     ['403', json(403, { error: 'Fermé', code: 'closed' })],
-    ['409', json(409, { error: 'Fermé', code: 'closed' })],
   ])('%s closed switches to the closed state', async (_label, response) => {
     routes(json(200, confirmPreview()), response);
     await readyAndClick();
@@ -483,7 +498,7 @@ describe('cancel', () => {
 
   test.each([
     ['404', json(404, { error: 'Introuvable' })],
-    ['409 closed', json(409, { error: 'Fermé', code: 'closed' })],
+    ['409 show-started', json(409, { error: 'Fermé', code: 'show-started' })],
   ])('%s after the click is the neutral invalid state', async (_label, response) => {
     routes(json(200, cancelPreview()), response);
     await readyAndClick();
@@ -495,6 +510,27 @@ describe('cancel', () => {
     await readyAndClick();
     expect(await screen.findByRole('alert')).toHaveTextContent(SERVER_ERROR);
     expect(screen.getByRole('button', { name: "Confirmer l'annulation" })).toBeEnabled();
+  });
+});
+
+describe('show-started on every request', () => {
+  const started = () => json(409, { error: 'Cette représentation a déjà commencé.', code: 'show-started' });
+
+  test.each([
+    ['confirm GET', 'confirm' as const, () => routes(started())],
+    ['confirm POST', 'confirm' as const, () => routes(json(200, confirmPreview()), started())],
+    ['cancel GET', 'cancel' as const, () => routes(started())],
+    ['cancel POST', 'cancel' as const, () => routes(json(200, cancelPreview()), started())],
+  ])('%s is the neutral invalid state, never the reservations-closed panel', async (label, action, arrange) => {
+    arrange();
+    const { container } = renderAction(action);
+    if (label.endsWith('POST')) {
+      userEvent.click(await screen.findByRole('button', { name: action === 'confirm' ? 'Confirmer ma réservation' : "Confirmer l'annulation" }));
+    }
+    expect(await screen.findByText(INVALID_LINK_COPY)).toBeInTheDocument();
+    expect(container).not.toHaveTextContent(CLOSED_COPY.text);
+    expect(container).not.toHaveTextContent(/déjà commencé/);
+    noButton();
   });
 });
 

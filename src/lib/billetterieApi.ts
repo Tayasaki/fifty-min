@@ -60,8 +60,14 @@ export function failureText(failure: ApiFailure): string {
   return failure.status >= 500 ? SERVER_ERROR : CLIENT_ERROR;
 }
 
+/** The whole service is closed (RESERVATIONS_OPEN gate). */
 export function isClosed(failure: ApiFailure): boolean {
   return failure.kind === 'http' && failure.code === 'closed';
+}
+
+/** This one show has started; the others stay bookable. */
+export function isShowStarted(failure: ApiFailure): boolean {
+  return failure.kind === 'http' && failure.code === 'show-started';
 }
 
 export function retryMinutes(failure: ApiFailure): number | undefined {

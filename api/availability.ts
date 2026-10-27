@@ -4,7 +4,9 @@ import { ERR } from './_lib/http';
 import { keys, redis } from './_lib/redis';
 
 // Counts are cached at the CDN: claimAtomic stays the authority on whether seats are left.
-const CACHEABLE = 'public, s-maxage=10, stale-while-revalidate=30';
+// Staleness is bounded by s-maxage alone: with only s-maxage set the browser's freshness is 0, so a
+// background-revalidation directive would make the browser serve a body up to 30 s old while it revalidates.
+const CACHEABLE = 'public, s-maxage=10';
 
 export async function GET(): Promise<Response> {
   try {
