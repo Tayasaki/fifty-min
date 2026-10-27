@@ -1,15 +1,16 @@
 {
   "version": "2.0",
   "name": "billetterie-claim-on-confirm",
-  "status": "in_progress",
+  "status": "completed",
   "currentMilestone": "M5",
-  "currentPhase": "plan",
-  "lastUpdated": "2026-10-27T16:42:55Z",
+  "currentPhase": "checkpoint",
+  "lastUpdated": "2026-10-27T17:36:41Z",
   "progress": {
     "M1": "completed",
     "M2": "completed",
     "M3": "completed",
-    "M4": "completed"
+    "M4": "completed",
+    "M5": "completed"
   },
   "milestones": {
     "M1": {
@@ -20,6 +21,9 @@
     },
     "M3": {
       "baseSha": "6c5b0aeca347366de71af9eef5ac8e666eab6a88"
+    },
+    "M4": {
+      "baseSha": "49c7b24c954aa3b600775f525112966f4dfc7c51"
     }
   },
   "execConfig": {
@@ -47,7 +51,12 @@
       "milestone": "M4",
       "completedAt": "2026-10-27T16:42:55Z",
       "notes": "Frontend: 511 API + 308 UI tests, review approved (0 critical, 0 high), browser flows verified"
+    },
+    {
+      "milestone": "M5",
+      "completedAt": "2026-10-27T17:36:41Z",
+      "notes": "Config, docs and pre-launch checklist: 523 API + 317 UI tests, review approved (0 critical, 0 high). Initiative complete; owner launch checklist pending."
     }
   ],
-  "nextAction": "Plan and implement M5: config, docs and pre-launch checklist (include the M4 review items from outcomes.md)"
+  "nextAction": "Owner: work through documentation/runbooks/billetterie-launch-checklist.md; then archive with /x-archive"
 }
