@@ -3,13 +3,14 @@ import assert from 'node:assert/strict';
 import { installNoNetwork } from './helpers/redis-rest-shim';
 import { POST as reserve } from '../reserve';
 import { GET as getReservation, POST as postReservation } from '../reservation';
+import { MSG } from '../_lib/http';
 
 const SHOW_ID = '2027-02-20-monique';
 
 function post(path: string, body: unknown, raw = false): Request {
   return new Request(`http://localhost/api/${path}`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', origin: 'https://melangedegenres.ch' },
     body: raw ? String(body) : JSON.stringify(body),
   });
 }
@@ -22,18 +23,41 @@ async function expectError(response: Response, status: number, message: string):
 
 const valid = { showId: SHOW_ID, name: 'Jean Dupont', email: 'jean@example.ch', quantity: 2 };
 
+const savedEnv = { VERCEL_ENV: process.env.VERCEL_ENV, RESERVATIONS_OPEN: process.env.RESERVATIONS_OPEN };
+
+// Production-shaped environment, independent of the developer's shell.
+function useProductionEnv(): void {
+  process.env.VERCEL_ENV = 'production';
+  delete process.env.RESERVATIONS_OPEN;
+}
+
+function restoreEnv(): void {
+  for (const [key, value] of Object.entries(savedEnv)) {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
+}
+
 describe('POST /api/reserve (paths that return before Redis)', () => {
-  beforeEach(() => installNoNetwork());
-  afterEach(() => mock.restoreAll());
+  beforeEach(() => {
+    useProductionEnv();
+    installNoNetwork();
+  });
+  afterEach(() => {
+    mock.restoreAll();
+    restoreEnv();
+  });
 
   it('rejects invalid JSON', async () => {
     await expectError(await reserve(post('reserve', '{nope', true)), 400, 'Requête invalide');
   });
 
   it('answers 200 ok to a filled honeypot without touching anything', async () => {
+    const now = 1_800_000_000_000;
+    mock.method(Date, 'now', () => now);
     const response = await reserve(post('reserve', { ...valid, website: 'http://spam.example' }));
     assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), { ok: true });
+    assert.deepEqual(await response.json(), { ok: true, linkExpiresAt: new Date(now + 48 * 3600 * 1000).toISOString() });
   });
 
   it('rejects an unknown show', async () => {
@@ -66,13 +90,17 @@ describe('POST /api/reserve around the show start', () => {
   const start = new Date('2027-02-20T19:00:00+01:00').getTime();
   let calls = 0;
   beforeEach(() => {
+    useProductionEnv();
     calls = 0;
     globalThis.fetch = async () => {
       calls += 1;
       throw new Error('unexpected network call');
     };
   });
-  afterEach(() => mock.restoreAll());
+  afterEach(() => {
+    mock.restoreAll();
+    restoreEnv();
+  });
 
   it('closes reservations at the exact start instant', async () => {
     mock.method(Date, 'now', () => start);
@@ -81,7 +109,9 @@ describe('POST /api/reserve around the show start', () => {
 
   it('refuses a valid request one millisecond before the start without any Redis or email call', async () => {
     mock.method(Date, 'now', () => start - 1);
-    await expectError(await reserve(post('reserve', valid)), 503, 'Service indisponible, merci de réessayer plus tard');
+    const response = await reserve(post('reserve', valid));
+    assert.equal(response.status, 403);
+    assert.deepEqual(await response.json(), { error: MSG.CLOSED, code: 'closed' });
     assert.equal(calls, 0);
   });
 });

@@ -312,3 +312,27 @@ describe('validateReserveFields', () => {
     assert.equal(validateReserveFields({ ...base, email: `${'l'.repeat(65)}@example.ch` }, before).ok, false);
   });
 });
+
+describe('validateName invisible characters (U+2060-2064, U+061C, U+00AD, U+180E)', () => {
+  const inside: [string, string][] = [
+    ['2060', '\u2060'], ['2061', '\u2061'], ['2062', '\u2062'], ['2063', '\u2063'], ['2064', '\u2064'],
+    ['061C', '\u061C'], ['00AD', '\u00AD'], ['180E', '\u180E'],
+  ];
+  for (const [label, char] of inside) {
+    it(`rejects U+${label} inside a name`, () => {
+      assert.equal(validateName(`Jean${char}Dupont`).ok, false);
+    });
+  }
+
+  for (const [label, char] of [['2060', '\u2060'], ['061C', '\u061C'], ['00AD', '\u00AD'], ['180E', '\u180E']]) {
+    it(`rejects a leading U+${label} that trim() does not remove`, () => {
+      assert.equal(validateName(`${char}Jean Dupont`).ok, false);
+    });
+  }
+
+  for (const [label, char] of [['205F', '\u205F'], ['00AC', '\u00AC'], ['00AE', '\u00AE'], ['061B', '\u061B']]) {
+    it(`accepts the neighbour U+${label}`, () => {
+      assert.equal(validateName(`Jean${char}Dupont`).ok, true);
+    });
+  }
+});

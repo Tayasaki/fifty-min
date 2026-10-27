@@ -52,6 +52,51 @@ export async function getReservation(id: string): Promise<{ record: ReservationR
   return raw ? { record: JSON.parse(raw) as ReservationRecord, raw } : null;
 }
 
+export interface ClaimState {
+  booked: number;
+  /** Seats already held by this canonical address */
+  mine: number;
+  /** Seats already held by this domain */
+  theirs: number;
+}
+
+// Read-only snapshot used to refuse a request before any mail or quota is spent.
+const CLAIM_STATE_SCRIPT = `
+return {
+  tonumber(redis.call('GET', KEYS[1]) or '0'),
+  tonumber(redis.call('HGET', KEYS[2], ARGV[1]) or '0'),
+  tonumber(redis.call('HGET', KEYS[3], ARGV[2]) or '0')
+}
+`;
+
+export async function readClaimState(showId: string, canonicalEmail: string, domain: string): Promise<ClaimState> {
+  const [booked, mine, theirs] = await redis<[number, number, number]>(
+    'EVAL',
+    CLAIM_STATE_SCRIPT,
+    3,
+    keys.booked(showId),
+    keys.perEmail(showId),
+    keys.perDomain(showId),
+    canonicalEmail,
+    domain
+  );
+  return { booked: Number(booked), mine: Number(mine), theirs: Number(theirs) };
+}
+
+/** One read for the preview of a signed link: the stored record (if any), its tombstone and the show counter. */
+export async function readLinkState(
+  id: string,
+  showId: string
+): Promise<{ record: ReservationRecord | null; tombstone: boolean; booked: number }> {
+  const [raw, tomb, booked] = await redis<(string | null)[]>(
+    'MGET',
+    keys.reservation(id),
+    keys.tombstone(id),
+    keys.booked(showId)
+  );
+  return { record: raw ? (JSON.parse(raw) as ReservationRecord) : null, tombstone: tomb !== null, booked: Number(booked || 0) };
+}
+
 export interface ClaimInput {
   id: string;
   showId: string;

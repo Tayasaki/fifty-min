@@ -4,7 +4,7 @@ status: current
 review_trigger: "on file change"
 created: 2026-10-27
 last_updated: 2026-10-27
-related: [documentation/milestones/_active/billetterie-claim-on-confirm/milestone-1.md, documentation/milestones/_active/billetterie-claim-on-confirm/milestone-2.md]
+related: [documentation/milestones/_active/billetterie-claim-on-confirm/milestone-1.md, documentation/milestones/_active/billetterie-claim-on-confirm/milestone-2.md, documentation/milestones/_active/billetterie-claim-on-confirm/milestone-3.md, documentation/reference/billetterie-api-contract.md]
 ---
 
 # API tests
@@ -75,6 +75,11 @@ The tests never call Upstash. `api/__tests__/helpers/redis-rest-shim.ts` replace
 | `redis-rest-shim.test.ts` | Shim rails and marker check | partly |
 | `limits.test.ts`, `guard.test.ts`, `http.test.ts`, `link.test.ts` | Pure modules and config limits | no |
 | `handlers-smoke.test.ts` | Handler paths that return before Redis | no |
+| `reserve-flow.test.ts`, `reservation-flow.test.ts` | `POST /api/reserve` and `/api/reservation`: authz, abuse, refunds, replay | partly |
+| `flow-integration.test.ts` | Full flow, 30-way concurrent claims, random-operation invariant, Redis down on every endpoint | mostly |
+| `availability.test.ts`, `admin-export.test.ts` | Cacheable counts, organizer export auth and CSV | partly |
+| `turnstile.test.ts`, `email.test.ts`, `site.test.ts`, `format-date-time.test.ts` | Injected `fetch`, error classes, links per environment | no |
+| `quota-refund.test.ts`, `redis-reads.test.ts` | `refundSendQuota`, `readClaimState`, `readLinkState` | yes |
 
 ## Time-bomb rule
 
@@ -95,6 +100,16 @@ Redis uses the real clock and `EXPIREAT` with a past time deletes the key at onc
 3. Wrap the suite with `describe('...', { skip: redisSkipReason }, ...)` and call `redis('FLUSHDB')` in `beforeEach`.
 
 Tests that return before any Redis call (see `handlers-smoke.test.ts`) call `installNoNetwork()` from the shim helper instead.
+
+## Flow tests
+
+Handlers are `handleReserve(request, deps)` and `handleReservationGet/Post(request, deps)` in `api/_lib`. `helpers/flow.ts` builds the `deps`:
+
+- `makeDeps({now, env})` injects the clock, the environment, a Resend `fetch` stub (`outbox` holds each mail, `resend.behavior` is `'ok'`, `'hang'` or `{status, body}`) and a Turnstile stub (`ok*` tokens pass once, `bad` is rejected, `down` is an outage).
+- `registerTestShow()` pushes a synthetic show dated 2100 into `SHOWS`; call `unregister()` in `after`. Never use the real 2027 shows in a Redis-backed handler test.
+- `snapshot()` returns every key with its value: refusals must leave it unchanged. `captureLogs()` records the console; assert no address, name or token appears.
+- `redisDown()` makes every Redis call answer HTTP 500 and needs no Redis server.
+- A hung Resend or Turnstile call uses `AbortSignal.timeout`, whose timer does not keep Node alive: hold a `setInterval` for the duration of the test, or the run ends silently.
 
 ## Known limits
 

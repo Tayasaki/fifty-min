@@ -20,8 +20,8 @@ const NAME_MAX = 100;
 const EMAIL_MAX = 254;
 const EMAIL_LOCAL_MAX = 64;
 
-// Control, line-separator, zero-width and bidirectional formatting characters.
-const CONTROL_CHARS = /[\u0000-\u001F\u007F-\u009F\u2028\u2029\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/;
+// Control, line-separator, zero-width, invisible-operator, soft-hyphen and bidirectional formatting characters.
+const CONTROL_CHARS = /[\u0000-\u001F\u007F-\u009F\u2028\u2029\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\u061C\u00AD\u180E\uFEFF]/;
 const NAME_URL_HINTS = /:\/\/|www\.|@|\b[a-z0-9-]+\.(com|net|org|ch|fr|io|ru|xyz|top|info|biz|link|click)\b/i;
 const EMAIL_LOCAL_RE = /^[A-Za-z0-9!#$%&'*+\/=?^_`{|}~-]+(\.[A-Za-z0-9!#$%&'*+\/=?^_`{|}~-]+)*$/;
 const EMAIL_DOMAIN_RE = /^([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,}$/;
