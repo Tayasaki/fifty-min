@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-
-/** Reservations open on 15 November 2026 at midnight, Geneva time (CET). */
-export const RESERVATIONS_OPEN_AT = new Date('2026-11-15T00:00:00+01:00');
+import { RESERVATIONS_OPEN_AT } from '../../config/shows';
 
 // Glowing "phone screens" around the central phone, like the hands on the poster
 const screens = [

@@ -1,4 +1,4 @@
-import { CONFIRMATION_DELAY_HOURS, MAX_TICKETS_PER_EMAIL, getShow, getVenue, showStart } from '../src/config/shows';
+import { CONFIRMATION_DELAY_HOURS, MAX_TICKETS_PER_EMAIL, getShow, getVenue, reservationsOpen, showStart } from '../src/config/shows';
 import { ReservationRecord, releaseAtomic, releaseExpired, reserveAtomic } from './_lib/redis';
 import { sendConfirmationRequest } from './_lib/email';
 
@@ -27,6 +27,10 @@ export async function POST(request: Request): Promise<Response> {
   const name = String(body.name || '').trim();
   const email = String(body.email || '').trim().toLowerCase();
   const quantity = Number(body.quantity);
+
+  if (!reservationsOpen(Date.now(), process.env.REACT_APP_SHOW_TICKETING === 'true')) {
+    return error('Les réservations ouvriront le 15 novembre 2026', 403);
+  }
 
   const show = getShow(showId);
   const venue = show && getVenue(show.venueId);

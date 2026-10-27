@@ -2,12 +2,32 @@ import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from '../ui/button';
 import { MapPin, Clock, MailCheck, AlertCircle, Accessibility } from 'lucide-react';
-import { MAX_TICKETS_PER_EMAIL, SHOWS, VENUES, type Show, getVenue, showStart } from '../../config/shows';
+import { MAX_TICKETS_PER_EMAIL, SHOWS, VENUES, RESERVATIONS_OPEN_AT, type Show, getVenue, reservationsOpen, showStart } from '../../config/shows';
 import ReservationsCountdown from './ReservationsCountdown';
 import { cn } from '../../lib/utils';
 import { suggestEmail } from '../../lib/emailTypos';
 
-const showTicketing = process.env.REACT_APP_SHOW_TICKETING === 'true';
+const forceOpen = process.env.REACT_APP_SHOW_TICKETING === 'true';
+
+// setTimeout overflows past ~24.8 days, so long waits are re-armed in chunks.
+const MAX_TIMEOUT_MS = 2_147_483_647;
+
+/** True once reservations are open; flips by itself at the opening time. */
+function useReservationsOpen(): boolean {
+  const [open, setOpen] = useState(() => reservationsOpen(Date.now(), forceOpen));
+
+  useEffect(() => {
+    if (open) return;
+    const delay = RESERVATIONS_OPEN_AT.getTime() - Date.now();
+    const id = window.setTimeout(
+      () => setOpen(reservationsOpen(Date.now(), forceOpen)),
+      Math.min(Math.max(delay, 0), MAX_TIMEOUT_MS)
+    );
+    return () => window.clearTimeout(id);
+  }, [open]);
+
+  return open;
+}
 
 type Availability = Record<string, number>;
 
@@ -215,6 +235,7 @@ function VenueDateBand({ venueId }: { venueId: string }) {
 }
 
 export default function TicketingSection() {
+  const showTicketing = useReservationsOpen();
   const [availability, setAvailability] = useState<Availability | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [success, setSuccess] = useState<Extract<SubmitState, { kind: 'success' }> | null>(null);
@@ -229,7 +250,7 @@ export default function TicketingSection() {
 
   useEffect(() => {
     if (showTicketing) loadAvailability();
-  }, []);
+  }, [showTicketing]);
 
   function selectShow(id: string) {
     setSelectedId(id);

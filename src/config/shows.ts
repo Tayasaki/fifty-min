@@ -23,6 +23,17 @@ export interface Show {
 
 export const MAX_TICKETS_PER_EMAIL = 4;
 
+/** Reservations open on 15 November 2026 at midnight, Geneva time (CET). */
+export const RESERVATIONS_OPEN_AT = new Date('2026-11-15T00:00:00+01:00');
+
+/**
+ * Whether reservations are accepted at `now`.
+ * `forceOpen` (REACT_APP_SHOW_TICKETING=true) opens them early, e.g. on a preview deployment.
+ */
+export function reservationsOpen(now: number = Date.now(), forceOpen = false): boolean {
+  return forceOpen || now >= RESERVATIONS_OPEN_AT.getTime();
+}
+
 /** Unconfirmed reservations are released after this delay (or at show start, whichever comes first). */
 export const CONFIRMATION_DELAY_HOURS = 48;
 
