@@ -4,6 +4,7 @@ import { OrganizationLD } from '../components/seo/StructuredData';
 import { PAGE_META } from '../config/seo';
 import HeroSection from '../components/sections/HeroSection';
 import TeasersSection from '../components/sections/TeasersSection';
+import TaglineBand from '../components/sections/TaglineBand';
 
 export default function HomePage() {
   return (
@@ -11,6 +12,7 @@ export default function HomePage() {
       <SEO {...PAGE_META.home} />
       <OrganizationLD />
       <HeroSection />
+      <TaglineBand />
       <TeasersSection />
     </>
   );

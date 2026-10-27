@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from '../ui/button';
-import { MapPin, Clock, Ticket, MailCheck, AlertCircle, Accessibility } from 'lucide-react';
-import { MAX_TICKETS_PER_EMAIL, SHOWS, VENUES, type Show, getVenue } from '../../config/shows';
+import { MapPin, Clock, MailCheck, AlertCircle, Accessibility } from 'lucide-react';
+import { MAX_TICKETS_PER_EMAIL, SHOWS, VENUES, type Show, getVenue, showStart } from '../../config/shows';
+import ReservationsCountdown from './ReservationsCountdown';
 import { cn } from '../../lib/utils';
 import { suggestEmail } from '../../lib/emailTypos';
 
@@ -187,6 +188,32 @@ function ReservationForm({
   );
 }
 
+// Same colour blocks as the poster's date visuals
+const VENUE_BAND_COLORS: Record<string, string> = {
+  monique: 'bg-[#D8C9DA]',
+  julienne: 'bg-[#A9CFD2]',
+};
+
+const MONTH_FMT = new Intl.DateTimeFormat('fr-CH', { month: 'long', year: 'numeric', timeZone: 'Europe/Zurich' });
+
+/** "Du 11 au 14 mars 2027", derived from the shows config so it never drifts. */
+function venueDateRange(venueId: string): string {
+  const dates = SHOWS.filter((s) => s.venueId === venueId).map(showStart);
+  if (dates.length === 0) return '';
+  const first = dates[0];
+  const last = dates[dates.length - 1];
+  const day = (d: Date) => Number(d.toLocaleString('fr-CH', { day: 'numeric', timeZone: 'Europe/Zurich' }));
+  return `Du ${day(first)} au ${day(last)} ${MONTH_FMT.format(last)}`;
+}
+
+function VenueDateBand({ venueId }: { venueId: string }) {
+  return (
+    <div className={cn('px-6 py-5', VENUE_BAND_COLORS[venueId] ?? 'bg-surface-2')}>
+      <p className="text-xl md:text-2xl font-bold text-text-primary uppercase leading-tight">{venueDateRange(venueId)}</p>
+    </div>
+  );
+}
+
 export default function TicketingSection() {
   const [availability, setAvailability] = useState<Availability | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -228,7 +255,7 @@ export default function TicketingSection() {
           <div className="w-16 h-1 rounded-full bg-purple mx-auto mt-4" />
           {showTicketing && (
             <p className="section-subtitle max-w-xl mx-auto mt-6">
-              L'entrée est gratuite, mais la réservation est obligatoire. Choisissez une date, indiquez votre email, puis
+              L'entrée est libre et la réservation recommandée. Choisissez une date, indiquez votre email, puis
               confirmez la réservation grâce au lien reçu par email.
             </p>
           )}
@@ -245,8 +272,10 @@ export default function TicketingSection() {
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.55, delay: i * 0.12 }}
                   viewport={{ once: true }}
-                  className="bg-white/70 backdrop-blur-sm rounded-2xl p-8 shadow-card flex flex-col gap-6 border border-black/6"
+                  className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-card flex flex-col border border-black/6 overflow-hidden"
                 >
+                  <VenueDateBand venueId={venue.id} />
+                  <div className="p-8 flex flex-col gap-6">
                   <div>
                     <div className="flex items-start gap-2 mb-1">
                       <MapPin size={15} className="text-text-muted mt-0.5 shrink-0" />
@@ -291,6 +320,7 @@ export default function TicketingSection() {
                       );
                     })}
                   </ul>
+                  </div>
                 </motion.div>
               ))}
             </div>
@@ -348,22 +378,39 @@ export default function TicketingSection() {
             </div>
           </>
         ) : (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            viewport={{ once: true }}
-            className="border-2 border-dashed border-purple/25 rounded-2xl flex flex-col items-center justify-center py-24 px-8 text-center bg-white/50 max-w-4xl mx-auto"
-          >
-            <motion.div animate={{ rotate: [0, 5, -5, 0] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}>
-              <Ticket size={48} className="text-purple/50 mb-6" />
-            </motion.div>
-            <h3 className="font-display text-2xl font-bold text-text-primary mb-3">Bientôt disponible</h3>
-            <p className="text-text-muted max-w-md leading-relaxed">
-              La billetterie pour <span className="text-purple">15 minutes</span> ouvrira très prochainement. Restez
-              connecté·e·s !
-            </p>
-          </motion.div>
+          <>
+            <ReservationsCountdown />
+
+            {/* Dates preview, in the poster's colours */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mt-8">
+              {VENUES.map((venue, i) => (
+                <motion.div
+                  key={venue.id}
+                  initial={{ opacity: 0, y: 40 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.55, delay: i * 0.12 }}
+                  viewport={{ once: true }}
+                  className="bg-white rounded-2xl shadow-card border border-black/6 overflow-hidden"
+                >
+                  <VenueDateBand venueId={venue.id} />
+                  <div className="p-6">
+                    <p className="font-semibold uppercase tracking-wide text-sm text-text-primary">
+                      {venue.name} · {venue.location}
+                    </p>
+                    <div className="h-1 w-20 bg-[#9497AE] rounded my-4" />
+                    <ul className="flex flex-col gap-1.5">
+                      {SHOWS.filter((s) => s.venueId === venue.id).map((show) => (
+                        <li key={show.id} className="flex items-center gap-2 text-sm text-text-muted">
+                          <Clock size={13} className="text-purple shrink-0" />
+                          {show.label}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </section>
