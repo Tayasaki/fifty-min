@@ -20,7 +20,8 @@ const NAME_MAX = 100;
 const EMAIL_MAX = 254;
 const EMAIL_LOCAL_MAX = 64;
 
-const CONTROL_CHARS = /[\u0000-\u001F\u007F-\u009F\u2028\u2029]/;
+// Control, line-separator, zero-width and bidirectional formatting characters.
+const CONTROL_CHARS = /[\u0000-\u001F\u007F-\u009F\u2028\u2029\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/;
 const NAME_URL_HINTS = /:\/\/|www\.|@|\b[a-z0-9-]+\.(com|net|org|ch|fr|io|ru|xyz|top|info|biz|link|click)\b/i;
 const EMAIL_LOCAL_RE = /^[A-Za-z0-9!#$%&'*+\/=?^_`{|}~-]+(\.[A-Za-z0-9!#$%&'*+\/=?^_`{|}~-]+)*$/;
 const EMAIL_DOMAIN_RE = /^([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,}$/;
@@ -104,7 +105,9 @@ export function canonicalEmail(email: string): string {
   const parts = splitEmail(email);
   if (!parts) return '';
   let { local, domain } = parts;
-  local = local.split('+')[0];
+  const untagged = local.split('+')[0];
+  // A tag-only local part ("+a") keeps its tag so unrelated addresses never share the empty key.
+  local = untagged || local;
   if (domain === 'gmail.com' || domain === 'googlemail.com') {
     local = local.replace(/\./g, '');
     domain = 'gmail.com';

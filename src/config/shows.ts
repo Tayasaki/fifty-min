@@ -34,6 +34,40 @@ export function showStart(show: Show): Date {
   return new Date(`${show.date}:00+01:00`);
 }
 
+// --- Reservation limits (server enforced) ---------------------------------
+
+/** Seats one non-major email domain can hold in a show (a catch-all domain cannot fill it). */
+export const MAX_TICKETS_PER_DOMAIN = 12;
+
+/** Providers shared by many unrelated people: no per-domain seat cap applies. */
+export const MAJOR_EMAIL_DOMAINS: readonly string[] = [
+  'gmail.com', 'googlemail.com', 'outlook.com', 'outlook.fr', 'hotmail.com', 'hotmail.fr', 'live.com', 'live.fr',
+  'msn.com', 'yahoo.com', 'yahoo.fr', 'icloud.com', 'me.com', 'proton.me', 'protonmail.com', 'protonmail.ch',
+  'bluewin.ch', 'gmx.ch', 'gmx.com', 'gmx.net', 'hispeed.ch', 'sunrise.ch', 'orange.fr', 'free.fr', 'sfr.fr',
+  'laposte.net', 'wanadoo.fr',
+];
+
+/** Minimum delay between two confirmation-request emails to the same address. */
+export const SEND_COOLDOWN_SECONDS = 600;
+
+/** Confirmation-request emails accepted per UTC day, all addresses together. */
+export const DAILY_REQUEST_EMAIL_BUDGET = 60;
+
+/** Personal data is kept this many days after the show starts. */
+export const RECORD_RETENTION_DAYS = 30;
+
+/** Epoch seconds at which a show's reservation data expires. */
+export function retentionExpiry(show: Show): number {
+  return Math.floor(showStart(show).getTime() / 1000) + RECORD_RETENTION_DAYS * 86400;
+}
+
+/** Per-show seat cap for an email domain; 0 means not enforced (major provider). */
+export function domainSeatCap(domain: string): number {
+  return MAJOR_EMAIL_DOMAINS.includes(domain.toLowerCase()) ? 0 : MAX_TICKETS_PER_DOMAIN;
+}
+
+// --- end of reservation limits ----------------------------------------------
+
 export const VENUES: Venue[] = [
   {
     id: 'monique',

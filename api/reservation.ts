@@ -1,9 +1,9 @@
 // GET  /api/reservation?id=<id>&token=<token>            → reservation details (read-only, safe for link scanners)
 // POST /api/reservation { action: 'confirm' | 'cancel', id, token }
 
-import { getShow, getVenue } from '../src/config/shows';
-import { ReservationRecord, confirmAtomic, getReservation, releaseAtomic } from './_lib/redis';
-import { sendCancellation, sendConfirmed } from './_lib/email';
+import { getShow, getVenue, retentionExpiry } from '../src/config/shows';
+import { ReleaseResult, ReservationRecord, getReservation, releaseAtomic } from './_lib/redis';
+import { sendCancellation } from './_lib/email';
 import { ERR, error } from './_lib/http';
 
 async function findReservation(
@@ -19,11 +19,6 @@ async function findReservation(
     return { response: error(ERR.UNAVAILABLE, 503) };
   }
   if (!found || found.record.token !== token) return { response: error(ERR.NOT_FOUND, 404) };
-  if (found.record.status === 'pending' && Date.now() > found.record.expiresAt) {
-    // Expired but not yet cleaned up: free the seats now.
-    await releaseAtomic(found.raw, found.record).catch((e) => console.error('release error', id, e));
-    return { response: error(ERR.NOT_FOUND, 404) };
-  }
   return found;
 }
 
@@ -32,8 +27,8 @@ export async function GET(request: Request): Promise<Response> {
   const found = await findReservation(url.searchParams.get('id') || '', url.searchParams.get('token') || '');
   if ('response' in found) return found.response;
 
-  const { id, showId, name, quantity, status, expiresAt } = found.record;
-  return Response.json({ id, showId, name, quantity, status, expiresAt }, { headers: { 'Cache-Control': 'no-store' } });
+  const { id, showId, name, quantity, status } = found.record;
+  return Response.json({ id, showId, name, quantity, status }, { headers: { 'Cache-Control': 'no-store' } });
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -57,38 +52,24 @@ export async function POST(request: Request): Promise<Response> {
 
   if (action === 'confirm') {
     if (record.status === 'confirmed') return Response.json({ ok: true, status: 'confirmed' });
-
-    const confirmed: ReservationRecord = { ...record, status: 'confirmed', confirmedAt: new Date().toISOString() };
-    let ok: boolean;
-    try {
-      ok = await confirmAtomic(raw, confirmed);
-    } catch (err) {
-      console.error('confirm error', err);
-      return error(ERR.UNAVAILABLE, 503);
-    }
-    if (!ok) return error(ERR.NOT_FOUND, 404);
-
-    try {
-      await sendConfirmed({ record: confirmed, show, venue });
-    } catch (err) {
-      console.error('confirmed email error', record.id, err);
-    }
-    return Response.json({ ok: true, status: 'confirmed' });
+    return error(ERR.NOT_FOUND, 404);
   }
 
-  let released: boolean;
+  let released: ReleaseResult;
   try {
-    released = await releaseAtomic(raw, record);
+    released = await releaseAtomic(raw, record, retentionExpiry(show));
   } catch (err) {
     console.error('cancel error', err);
     return error(ERR.UNAVAILABLE, 503);
   }
-  if (!released) return error(ERR.NOT_FOUND, 404);
+  if (released === 'not-found') return error(ERR.NOT_FOUND, 404);
 
-  try {
-    await sendCancellation({ record, show, venue });
-  } catch (err) {
-    console.error('cancellation email error', record.id, err);
+  if (released === 'released') {
+    try {
+      await sendCancellation({ record, show, venue });
+    } catch (err) {
+      console.error('cancellation email error', record.id, err);
+    }
   }
   return Response.json({ ok: true, status: 'cancelled' });
 }

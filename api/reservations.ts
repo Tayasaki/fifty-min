@@ -2,7 +2,7 @@
 // "Authorization: Bearer <ADMIN_TOKEN>" (or ?token=<ADMIN_TOKEN>) → CSV list for the door.
 
 import { SHOWS, getShow } from '../src/config/shows';
-import { ReservationRecord, keys, redis, releaseExpired } from './_lib/redis';
+import { ReservationRecord, keys, redis } from './_lib/redis';
 
 function csvCell(value: string | number): string {
   const s = String(value);
@@ -20,8 +20,6 @@ export async function GET(request: Request): Promise<Response> {
   const showId = url.searchParams.get('show');
   const shows = showId ? [getShow(showId)].filter(Boolean) : SHOWS;
   if (shows.length === 0) return Response.json({ error: 'Représentation inconnue' }, { status: 404 });
-
-  await releaseExpired();
 
   const rows: string[] = ['date;reservation;statut;nom;email;places;reserve_le'];
   for (const show of shows) {

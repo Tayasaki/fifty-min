@@ -62,6 +62,30 @@ describe('POST /api/reserve (paths that return before Redis)', () => {
   });
 });
 
+describe('POST /api/reserve around the show start', () => {
+  const start = new Date('2027-02-20T19:00:00+01:00').getTime();
+  let calls = 0;
+  beforeEach(() => {
+    calls = 0;
+    globalThis.fetch = async () => {
+      calls += 1;
+      throw new Error('unexpected network call');
+    };
+  });
+  afterEach(() => mock.restoreAll());
+
+  it('closes reservations at the exact start instant', async () => {
+    mock.method(Date, 'now', () => start);
+    await expectError(await reserve(post('reserve', valid)), 400, 'Les réservations pour cette date sont closes');
+  });
+
+  it('refuses a valid request one millisecond before the start without any Redis or email call', async () => {
+    mock.method(Date, 'now', () => start - 1);
+    await expectError(await reserve(post('reserve', valid)), 503, 'Service indisponible, merci de réessayer plus tard');
+    assert.equal(calls, 0);
+  });
+});
+
 describe('/api/reservation (paths that return before Redis)', () => {
   beforeEach(() => installNoNetwork());
 

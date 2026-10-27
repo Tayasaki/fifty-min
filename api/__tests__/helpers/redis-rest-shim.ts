@@ -114,29 +114,36 @@ function firstError(replies: Reply[]): Error | null {
 
 let guard: Promise<void> | null = null;
 
-function ensureTestDatabase(target: RedisTarget): Promise<void> {
-  if (!guard) {
-    guard = (async () => {
-      const [select, size, marker] = await exchange(target, [
-        ['SELECT', String(TEST_DB)],
-        ['DBSIZE'],
-        ['EXISTS', MARKER_KEY],
-      ]);
-      if (select instanceof Error) throw select;
-      if (size !== 0 && marker !== 1) {
-        throw new Error(`Refusing to flush a non-test database: DB ${TEST_DB} holds ${String(size)} keys and lacks ${MARKER_KEY}`);
-      }
-      await exchange(target, [['SELECT', String(TEST_DB)], ['SET', MARKER_KEY, '1']]);
-    })();
+/** Uncached marker check: throws unless DB 15 is empty or holds the marker key, then writes the marker. */
+export async function checkDatabase(target: RedisTarget): Promise<void> {
+  const [select, size, marker] = await exchange(target, [
+    ['SELECT', String(TEST_DB)],
+    ['DBSIZE'],
+    ['EXISTS', MARKER_KEY],
+  ]);
+  if (select instanceof Error) throw select;
+  if (size !== 0 && marker !== 1) {
+    throw new Error(`Refusing to flush a non-test database: DB ${TEST_DB} holds ${String(size)} keys and lacks ${MARKER_KEY}`);
   }
+  await exchange(target, [['SELECT', String(TEST_DB)], ['SET', MARKER_KEY, '1']]);
+}
+
+function ensureTestDatabase(target: RedisTarget): Promise<void> {
+  if (!guard) guard = checkDatabase(target);
   return guard;
 }
 
 const FORBIDDEN = new Set(['FLUSHALL', 'SELECT', 'CONFIG', 'SHUTDOWN', 'SLAVEOF', 'REPLICAOF', 'MIGRATE']);
 
+// A script body can call a forbidden command, which the first-token check would not see.
+const FORBIDDEN_IN_SCRIPT = /\b(flushall|config|shutdown|slaveof|replicaof|migrate|select)\b/i;
+
 async function runCommand(target: RedisTarget, command: string[]): Promise<Reply> {
   const name = (command[0] ?? '').toUpperCase();
   if (FORBIDDEN.has(name)) throw new Error(`Command ${name} is not allowed in the test shim`);
+  if ((name === 'EVAL' || name === 'EVALSHA') && FORBIDDEN_IN_SCRIPT.test(command[1] ?? '')) {
+    throw new Error(`Command ${name} with a forbidden command in its body is not allowed in the test shim`);
+  }
   await ensureTestDatabase(target);
   if (name === 'FLUSHDB') {
     const replies = await exchange(target, [['SELECT', String(TEST_DB)], ['FLUSHDB'], ['SET', MARKER_KEY, '1']]);

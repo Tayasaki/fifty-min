@@ -32,17 +32,6 @@ function actionUrl(action: 'confirmer' | 'annuler', record: ReservationRecord): 
   return `${BASE_URL}/billetterie?${action}=${record.id}&token=${record.token}`;
 }
 
-function formatDateTime(ms: number): string {
-  return new Date(ms).toLocaleString('fr-CH', {
-    timeZone: 'Europe/Zurich',
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
 /** 20270220T193000Z */
 function icsDate(date: Date): string {
   return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
@@ -119,39 +108,6 @@ async function send(to: string, subject: string, text: string, html: string, att
     body: JSON.stringify({ from: FROM, to: [to], reply_to: REPLY_TO, subject, text, html, attachments }),
   });
   if (!res.ok) throw new Error(`Resend HTTP ${res.status}: ${await res.text()}`);
-}
-
-/** Step 1: asks the person to confirm their email address. */
-export async function sendConfirmationRequest(params: EmailParams): Promise<void> {
-  const { record, show, venue } = params;
-  const link = actionUrl('confirmer', record);
-  const deadline = formatDateTime(record.expiresAt);
-
-  const text = [
-    `Bonjour ${record.name},`,
-    '',
-    `Merci pour votre réservation pour « 15 minutes » :`,
-    `- ${placesLabel(record.quantity)}`,
-    `- ${show.label} (ouverture des portes ${show.doorsOpen})`,
-    `- ${venue.name}, ${venue.address}`,
-    '',
-    `Pour la valider, confirmez-la avant le ${deadline} en ouvrant ce lien :`,
-    link,
-    '',
-    `Sans confirmation, les places seront libérées pour d'autres spectateur·ice·s.`,
-    `Vous n'êtes pas à l'origine de cette réservation ? Ignorez simplement cet email.`,
-    '',
-    `Mélange de Genres`,
-  ].join('\n');
-
-  const html = layout(`
-  <p>Bonjour ${escapeHtml(record.name)},</p>
-  <p>Merci pour votre réservation ! Il ne reste qu'une étape&nbsp;: la confirmer.</p>
-  ${recapHtml(params)}
-  <p style="margin:24px 0;text-align:center">${button(link, 'Confirmer ma réservation')}</p>
-  <p style="color:#525968;font-size:14px">À confirmer avant le <strong>${escapeHtml(deadline)}</strong>. Sans confirmation, les places seront libérées pour d'autres spectateur·ice·s.<br>Vous n'êtes pas à l'origine de cette réservation ? Ignorez simplement cet email.</p>`);
-
-  await send(record.email, `Confirmez votre réservation — 15 minutes, ${show.label}`, text, html);
 }
 
 /** Step 2: recap once confirmed, with calendar links and the cancellation link. */

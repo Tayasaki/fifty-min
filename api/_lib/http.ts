@@ -1,7 +1,3 @@
-export function json(body: unknown, init?: ResponseInit): Response {
-  return Response.json(body, init);
-}
-
 export function error(message: string, status = 400): Response {
   return Response.json({ error: message }, { status });
 }

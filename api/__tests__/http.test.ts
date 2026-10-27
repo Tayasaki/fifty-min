@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { ERR, error, json } from '../_lib/http';
+import { ERR, error } from '../_lib/http';
 
 describe('http helpers', () => {
   it('error defaults to 400 with an { error } body', async () => {
@@ -11,13 +11,6 @@ describe('http helpers', () => {
 
   it('error accepts a custom status', () => {
     assert.equal(error('x', 503).status, 503);
-  });
-
-  it('json sets the JSON content type', async () => {
-    const response = json({ ok: true }, { status: 201 });
-    assert.equal(response.status, 201);
-    assert.ok((response.headers.get('content-type') ?? '').startsWith('application/json'));
-    assert.deepEqual(await response.json(), { ok: true });
   });
 
   it('ERR strings match the literals the handlers used before', () => {

@@ -172,6 +172,22 @@ describe('validateName', () => {
   for (const [label, raw, value] of accepted) {
     it(`accepts ${label}`, () => assert.deepEqual(validateName(raw), { ok: true, value }));
   }
+  const invisible = [0x200b, 0x200c, 0x200d, 0x200e, 0x200f, 0x202a, 0x202b, 0x202c, 0x202d, 0x202e, 0x2066, 0x2067, 0x2068, 0x2069, 0xfeff];
+  for (const code of invisible) {
+    const hex = code.toString(16).toUpperCase();
+    it(`rejects U+${hex} inside a name`, () => assert.equal(validateName(`Je${String.fromCharCode(code)}an`).ok, false));
+  }
+  it('rejects a leading U+200B that trim() does not remove', () => {
+    assert.equal(validateName('\u200BJean').ok, false);
+  });
+  for (const code of [0x200a, 0x2010, 0x202f, 0x206a]) {
+    it(`accepts the neighbour U+${code.toString(16).toUpperCase()}`, () => {
+      assert.equal(validateName(`Je${String.fromCharCode(code)}an`).ok, true);
+    });
+  }
+  it('trims a leading and trailing U+FEFF and accepts the clean name', () => {
+    assert.deepEqual(validateName('\uFEFFJean\uFEFF'), { ok: true, value: 'Jean' });
+  });
   it('rejects 101 code points even when UTF-16 length differs', () => {
     assert.equal(validateName('😀'.repeat(101)).ok, false);
   });
@@ -182,15 +198,33 @@ describe('canonicalEmail / emailDomain', () => {
     ['A.B+x@Gmail.com', 'ab@gmail.com'],
     ['ab@googlemail.com', 'ab@gmail.com'],
     ['a.b+x@example.ch', 'a.b@example.ch'],
-    ['+x@example.ch', ''],
+    ['+x@example.ch', '+x@example.ch'],
     ['  Jean@Example.CH  ', 'jean@example.ch'],
     ['no-at-sign', ''],
   ];
   for (const [input, expected] of cases) {
     it(`maps ${JSON.stringify(input)} to ${JSON.stringify(expected)}`, () => assert.equal(canonicalEmail(input), expected));
   }
+  it('keeps a tag-only local part so the key is never empty', () => {
+    assert.equal(canonicalEmail('+a@x.com'), '+a@x.com');
+    assert.equal(canonicalEmail('+a+b@x.com'), '+a+b@x.com');
+    assert.equal(canonicalEmail('+a@gmail.com'), '+a@gmail.com');
+    assert.notEqual(canonicalEmail('+a@x.com'), canonicalEmail('+b@x.com'));
+  });
+  it('returns an empty string without a local part or domain', () => {
+    assert.equal(canonicalEmail('@x.com'), '');
+    assert.equal(canonicalEmail('a@'), '');
+  });
   it('extracts the lowercase domain', () => {
     assert.equal(emailDomain('Jean@Example.CH'), 'example.ch');
+  });
+});
+
+describe('validateReserveFields (tag-only email)', () => {
+  it('accepts +a@x.com with a non-empty canonical email', () => {
+    const result = validateReserveFields({ showId: SHOW_ID, name: 'Jean Dupont', email: '+a@x.com', quantity: 1 }, () => START - 1);
+    assert.equal(result.ok, true);
+    if (result.ok) assert.equal(result.value.canonicalEmail, '+a@x.com');
   });
 });
 
