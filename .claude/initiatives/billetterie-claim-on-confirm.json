@@ -2,13 +2,13 @@
   "version": "2.0",
   "name": "billetterie-claim-on-confirm",
   "status": "in_progress",
-  "currentMilestone": "M3",
-  "currentPhase": "review",
-  "lastUpdated": "2026-10-27T15:10:36Z",
+  "currentMilestone": "M4",
+  "currentPhase": "plan",
+  "lastUpdated": "2026-10-27T15:30:01Z",
   "progress": {
     "M1": "completed",
     "M2": "completed",
-    "M3": "failed"
+    "M3": "completed"
   },
   "milestones": {
     "M1": {
@@ -17,9 +17,7 @@
     "M2": {
       "baseSha": "cea6e4f9ef6b50f223aadb4cbc41ab4a59c34098"
     },
-    "M3": {
-      "headSha": "d5cd5039ca9547b846dbe5cc003f8bbc8eba4003"
-    }
+    "M3": {}
   },
   "execConfig": {
     "branchModel": "shared",
@@ -36,7 +34,12 @@
       "milestone": "M2",
       "completedAt": "2026-10-27T14:20:52Z",
       "notes": "Redis lifecycle and send quota: 274/274 tests, 20/20 mutants killed, review approved (0 critical, 0 high)"
+    },
+    {
+      "milestone": "M3",
+      "completedAt": "2026-10-27T15:30:01Z",
+      "notes": "API flow, email and admin hardening: 495/495 tests, review approved (0 critical, 0 high); API mediums carried to M4"
     }
   ],
-  "nextAction": "Resume M3 at review when host load drops: /x-initiative continue (resource gate saturated for 600s; M3 implement committed at d5cd503, 495/495 tests verified)"
+  "nextAction": "Plan and implement M4: frontend (include the M3 API follow-ups from outcomes.md as the first phase)"
 }
