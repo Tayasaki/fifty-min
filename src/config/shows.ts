@@ -23,6 +23,17 @@ export interface Show {
 
 export const MAX_TICKETS_PER_EMAIL = 4;
 
+/** Reservations open on 15 November 2026 at midnight, Geneva time (CET). */
+export const RESERVATIONS_OPEN_AT = new Date('2026-11-15T00:00:00+01:00');
+
+/**
+ * Whether reservations are accepted at `now`.
+ * `forceOpen` (REACT_APP_SHOW_TICKETING=true) opens them early, e.g. on a preview deployment.
+ */
+export function reservationsOpen(now: number = Date.now(), forceOpen = false): boolean {
+  return forceOpen || now >= RESERVATIONS_OPEN_AT.getTime();
+}
+
 /** 2h45 with intermission (used for calendar events). */
 export const SHOW_DURATION_MINUTES = 165;
 
@@ -84,6 +95,7 @@ export const VENUES: Venue[] = [
 
 // Le Monique capacity: 100 is the conservative figure (the venue may have 120 seats). Raising it is safe; lowering it below the booked count overbooks. Open question: launch checklist, step 0.
 export const SHOWS: Show[] = [
+  { id: '2027-02-19-monique', venueId: 'monique', date: '2027-02-19T19:00', doorsOpen: '18h30', label: 'Vendredi 19 février 2027 — 19h', capacity: 100 },
   { id: '2027-02-20-monique', venueId: 'monique', date: '2027-02-20T19:00', doorsOpen: '18h30', label: 'Samedi 20 février 2027 — 19h', capacity: 100 },
   { id: '2027-02-21-monique', venueId: 'monique', date: '2027-02-21T17:00', doorsOpen: '16h30', label: 'Dimanche 21 février 2027 — 17h', capacity: 100 },
   { id: '2027-03-11-julienne', venueId: 'julienne', date: '2027-03-11T19:00', doorsOpen: '18h30', label: 'Jeudi 11 mars 2027 — 19h', capacity: 100 },

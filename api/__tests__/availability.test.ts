@@ -1,7 +1,7 @@
 import { redisSkipReason } from './helpers/redis-env';
 import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { SHOWS } from '../../src/config/shows';
+import { RESERVATIONS_OPEN_AT, SHOWS } from '../../src/config/shows';
 import { ERR } from '../_lib/http';
 import { keys, redis } from '../_lib/redis';
 import { GET } from '../availability';
@@ -50,11 +50,21 @@ describe('GET /api/availability', { skip: redisSkipReason }, () => {
     assert.ok(Number.isFinite(value) && value >= 0);
   });
 
-  it('echoes open from RESERVATIONS_OPEN', async () => {
-    for (const [value, expected] of [['true', true], ['false', false], [undefined, false]] as const) {
-      if (value === undefined) delete process.env.RESERVATIONS_OPEN;
-      else process.env.RESERVATIONS_OPEN = value;
-      assert.equal(((await (await call()).json()) as { open: boolean }).open, expected, String(value));
+  it('echoes open from RESERVATIONS_OPEN, and from the opening date when it is unset', async () => {
+    const realNow = Date.now;
+    const at = RESERVATIONS_OPEN_AT.getTime();
+    try {
+      for (const [value, now, expected] of [
+        ['true', at - 86_400_000, true], ['false', at + 86_400_000, false],
+        [undefined, at - 1, false], [undefined, at, true],
+      ] as const) {
+        if (value === undefined) delete process.env.RESERVATIONS_OPEN;
+        else process.env.RESERVATIONS_OPEN = value;
+        Date.now = () => now;
+        assert.equal(((await (await call()).json()) as { open: boolean }).open, expected, `${String(value)} @${now}`);
+      }
+    } finally {
+      Date.now = realNow;
     }
   });
 

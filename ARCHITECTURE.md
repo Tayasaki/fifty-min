@@ -57,7 +57,7 @@ Claim-on-confirm (ADR-002, status proposed): the request mails a signed link and
 
 | Module (`api/_lib/`) | Responsibility |
 |---|---|
-| `guard.ts` | field validation, canonical email, origin and content-type checks, `RESERVATIONS_OPEN` gate |
+| `guard.ts` | field validation, canonical email, origin and content-type checks, opening date and `RESERVATIONS_OPEN` gate |
 | `link.ts` | signed confirm links (HMAC, 48 h, key rotation by id) and cancel tokens |
 | `quota.ts` | per-address send cooldown and daily send budget, fail-closed |
 | `http.ts` | `error()`, shared messages and codes (`MSG`, `ERR`, `CODE_SHOW_STARTED`), constant-time compare |

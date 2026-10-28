@@ -37,7 +37,7 @@ export async function handleReserve(request: Request, deps: Deps): Promise<Respo
   const fields = validated.value;
   const { show, venue } = fields;
 
-  if (!isReservationsOpen(env)) return error(MSG.CLOSED, 403, { code: 'closed' });
+  if (!isReservationsOpen(env, deps.now())) return error(MSG.CLOSED, 403, { code: 'closed' });
 
   const captcha = await deps.verifyTurnstile(fields.turnstileToken);
   if (!captcha.ok) {

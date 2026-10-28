@@ -15,7 +15,7 @@ export async function GET(): Promise<Response> {
       SHOWS.map((s, i) => [s.id, Math.max(0, s.capacity - (Number(booked[i]) || 0))])
     );
     return Response.json(
-      { availability, open: isReservationsOpen(process.env) },
+      { availability, open: isReservationsOpen(process.env, Date.now()) },
       { headers: { 'Cache-Control': CACHEABLE } }
     );
   } catch (err) {

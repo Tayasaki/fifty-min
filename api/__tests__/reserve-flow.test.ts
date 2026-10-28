@@ -1,7 +1,7 @@
 import { redisSkipReason } from './helpers/redis-env';
 import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { retentionExpiry } from '../../src/config/shows';
+import { RESERVATIONS_OPEN_AT, retentionExpiry } from '../../src/config/shows';
 import { canonicalEmail } from '../_lib/guard';
 import { loadLinkSecrets, verifyLink } from '../_lib/link';
 import { MSG, ERR } from '../_lib/http';
@@ -147,8 +147,8 @@ noRedisSuite('POST /api/reserve authz and abuse (nothing reaches Redis or Resend
     untouched();
   });
 
-  it('refuses when the gate is unset, "1" or "false" and keeps the exact 403 body', async () => {
-    for (const value of [undefined, '1', 'false', '']) {
+  it('refuses when the gate is "1", "yes", a typo or "false" and keeps the exact 403 body', async () => {
+    for (const value of ['1', 'yes', 'ture', 'false']) {
       const closed = makeDeps({ env: makeEnv({ RESERVATIONS_OPEN: value }) });
       const res = await call(closed, validReserve());
       assert.equal(res.status, 403, String(value));
@@ -156,6 +156,29 @@ noRedisSuite('POST /api/reserve authz and abuse (nothing reaches Redis or Resend
       assert.equal(closed.turnstile.calls, 0);
     }
     assert.equal(redisCalls(), 0);
+  });
+
+  it('lets the opening date decide when the gate is unset or empty', async () => {
+    const at = RESERVATIONS_OPEN_AT.getTime();
+    for (const value of [undefined, '', '  ']) {
+      const before = makeDeps({ now: at - 1, env: makeEnv({ RESERVATIONS_OPEN: value }) });
+      const closed = await call(before, validReserve({ turnstileToken: 'bad' }));
+      assert.equal(closed.status, 403, `before ${String(value)}`);
+      assert.deepEqual(await closed.json(), { error: MSG.CLOSED, code: 'closed' });
+      assert.equal(before.turnstile.calls, 0);
+
+      const after = makeDeps({ now: at, env: makeEnv({ RESERVATIONS_OPEN: value }) });
+      const open = await call(after, validReserve({ turnstileToken: 'bad' }));
+      assert.equal(open.status, 400, `after ${String(value)}`);
+      assert.equal(after.turnstile.calls, 1);
+    }
+  });
+
+  it('keeps "false" closed after the opening date: the env value overrides the date', async () => {
+    const after = makeDeps({ now: RESERVATIONS_OPEN_AT.getTime() + 86_400_000, env: makeEnv({ RESERVATIONS_OPEN: 'false' }) });
+    const res = await call(after, validReserve());
+    assert.equal(res.status, 403);
+    assert.equal(after.turnstile.calls, 0);
   });
 
   it('treats " TRUE " as open (reaches the captcha step)', async () => {

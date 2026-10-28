@@ -36,6 +36,7 @@ Add about 40 minutes of day-1 monitoring (step 6): about 7 hours in all. Realist
 - [ ] (a) **Accept or veto ADR-002.** It is `status: proposed`. To accept it, make exactly two edits: set `status: accepted` in `documentation/decisions/ADR-002-billetterie-claim-on-confirm.md`, and add a row for ADR-002 to the table in `documentation/decisions/INDEX.md` (that index lists accepted ADRs only). Until then it stays proposed.
 - [ ] (b) **Review the French strings** flagged for owner review in `src/config/billetterieCopy.ts`: the privacy notice (`PRIVACY_NOTICE`), `successText`, `INVALID_LINK_COPY`, `UNAVAILABLE_COPY`, `recapFailedText`, `STARTED_LABEL`, and the on/off descriptions in `src/config/seo.ts`. Do not turn the flag on before this box is ticked.
 - [ ] (c) **Ask the Théâtre Le Monique**: 100 or 120 seats? Capacity is 100 in `src/config/shows.ts` (the conservative figure). Raising it later is safe; lowering it below the booked count overbooks.
+- [ ] (d) **Harmonise two texts**: the countdown banner (`ReservationsCountdown.tsx`) says "Réservation recommandée · Chapeau à la sortie" while the form says the reservation is mandatory; and confirm that the 19 February show (added on `billeterie`, capacity 100) is part of the run.
 - [ ] (d) **Who holds `ADMIN_TOKEN`** (the door list export)? Write the name down.
 - [ ] (e) **Resend plan**: see step 1.2.
 
@@ -63,7 +64,7 @@ Add about 40 minutes of day-1 monitoring (step 6): about 7 hours in all. Realist
 
 ### 1.4 Vercel (Dev + Owner, 45 min)
 
-- [ ] Set the environment variables per environment from the matrix in `documentation/billetterie.md`. Production gets the production database, the production Resend key and the production Turnstile pair. `LINK_SECRET` and `ADMIN_TOKEN` are each at least 32 random characters and different in every environment. `REACT_APP_SHOW_TICKETING` and `REACT_APP_TURNSTILE_SITE_KEY` are build-time values. `RESERVATIONS_OPEN` stays unset or `false` until go-live.
+- [ ] Set the environment variables per environment from the matrix in `documentation/billetterie.md`. Production gets the production database, the production Resend key and the production Turnstile pair. `LINK_SECRET` and `ADMIN_TOKEN` are each at least 32 random characters and different in every environment. `REACT_APP_SHOW_TICKETING` and `REACT_APP_TURNSTILE_SITE_KEY` are build-time values. `RESERVATIONS_OPEN` stays `false` until you decide to open (unset lets the 15 November date open it by itself).
 - [ ] Verify the Production Turnstile site key is **not** the test key `1x00000000000000000000AA`.
 - [ ] Leave `PUBLIC_SITE_URL` unset in Production and in Preview.
 - [ ] Settings, General: Node.js 20 or newer.
@@ -84,7 +85,7 @@ Run on a Preview deployment of the branch with the ticketing flag on. Paste the 
 - [ ] **S7 CSP report-only.** Zero violations in the console with the real Turnstile pair, in Chrome and in one of Firefox or Safari.
 - [ ] **S8 Gate.** Set `RESERVATIONS_OPEN=false`, Redeploy, and time how long until the page shows the closed panel and `POST /api/reserve` answers 403.
 - [ ] **S9 Upstash cost.** Command count before and after 20 page loads and one booking; record the cost per load and per booking against the free tier (500K commands per month).
-- [ ] **S10 Production-shaped check** on the Production URL before go-live: ticketing is off.
+- [ ] **S10 Production-shaped check** on the Production URL before go-live: the page shows the countdown and the API answers `open:false` (before 15 November, or with `RESERVATIONS_OPEN=false`).
 - [ ] **S11 Turnstile.** The widget renders on the allowed host only.
 - [ ] **S12 Deliverability.** Gmail, Outlook, Proton and a Swiss provider: inbox or spam.
 - [ ] **S13 Layout** at 360 px, and the `.ics` imports into a calendar.
@@ -98,9 +99,9 @@ Run on a Preview deployment of the branch with the ticketing flag on. Paste the 
 
 - [ ] 1. Merge or open the pull request as described in the initiative README (against `billeterie`, not `main`, until that branch lands).
 - [ ] 2. Final check of the Production environment variables.
-- [ ] 3. Deploy with `RESERVATIONS_OPEN=false`.
+- [ ] 3. Deploy with `RESERVATIONS_OPEN=false` (closed even after the 15 November opening date).
 - [ ] 4. Verify `/api/availability` answers `open:false` and `POST /api/reserve` answers 403 `closed`.
-- [ ] 5. Set `RESERVATIONS_OPEN=true` and Redeploy.
+- [ ] 5. Set `RESERVATIONS_OPEN=true` to open now, or delete the variable to let the 15 November date open it, and Redeploy.
 - [ ] 6. Make one real booking with an address you own: confirm, cancel, export.
 - [ ] 7. Announce.
 

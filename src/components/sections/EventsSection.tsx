@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Clock, MapPin } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Calendar, Clock, MapPin, Sparkles } from 'lucide-react';
 import { Button } from '../ui/button';
 
 interface EventItem {
@@ -13,19 +14,8 @@ interface EventItem {
   formUrl: string;
 }
 
-const events: EventItem[] = [
-  {
-    title: 'Uni Art Fait Son Live',
-    description:
-      'Cet événement est organisé par Uni Art et Mélange de Genres — venez participer à un blind test plein de surprises et tentez de remporter des prix ! On espère vous voir nombreux·ses !',
-    date: '1er mai 2026',
-    time: '19h00',
-    location: 'Floky Bar',
-    locationDetail: 'Sous-sol',
-    formUrl:
-      'https://docs.google.com/forms/d/e/1FAIpQLSfuMoK6XWqs8iVJAWbBrywL5q2thbpmJTBg3lVJOu-1FWJaeA/viewform',
-  },
-];
+// Add upcoming events here; an announcement card is shown while the list is empty.
+const events: EventItem[] = [];
 
 export default function EventsSection() {
   return (
@@ -44,6 +34,27 @@ export default function EventsSection() {
           <h2 className="section-title">Ateliers & Événements</h2>
           <div className="w-16 h-1 rounded-full bg-teal mx-auto mt-4 mb-12" />
         </motion.div>
+
+        {events.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55 }}
+            viewport={{ once: true }}
+            className="max-w-2xl mx-auto bg-white/70 backdrop-blur-sm rounded-2xl p-10 shadow-card border border-black/6 text-center flex flex-col items-center gap-4"
+          >
+            <Sparkles size={36} className="text-teal" />
+            <h3 className="font-display text-2xl font-bold text-text-primary">De nouveaux rendez-vous arrivent</h3>
+            <p className="text-text-muted text-sm leading-relaxed max-w-md">
+              Ateliers, blind tests, soirées… D'autres événements sont en préparation d'ici les représentations de{' '}
+              <span className="text-teal font-medium">15 minutes</span>. Revenez bientôt ou suivez-nous pour ne rien
+              manquer !
+            </p>
+            <Button variant="outline" size="lg" className="rounded-full mt-2" asChild>
+              <Link to="/contact">Nous contacter</Link>
+            </Button>
+          </motion.div>
+        )}
 
         <div className="flex flex-col gap-6 max-w-2xl mx-auto">
           {events.map((event, i) => (

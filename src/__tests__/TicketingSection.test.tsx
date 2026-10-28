@@ -5,7 +5,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event';
 import TicketingSection from '../components/sections/TicketingSection';
 import { CONTACT_EMAIL, CLOSED_COPY, PRIVACY_NOTICE, STARTED_LABEL, SUCCESS_TITLE, UNAVAILABLE_COPY } from '../config/billetterieCopy';
-import { MAX_TICKETS_PER_EMAIL, RECORD_RETENTION_DAYS, SHOWS } from '../config/shows';
+import { MAX_TICKETS_PER_EMAIL, RECORD_RETENTION_DAYS, RESERVATIONS_OPEN_AT, SHOWS } from '../config/shows';
 import { CLIENT_ERROR, GENERIC_ERROR, NETWORK_ERROR, SERVER_ERROR } from '../lib/billetterieApi';
 import { formatDateTime } from '../lib/formatDateTime';
 import { type FakeTurnstile, installFakeTurnstile, uninstallFakeTurnstile } from './helpers/turnstile';
@@ -132,34 +132,70 @@ function sentBody(): Record<string, unknown> {
   return JSON.parse(String(init?.body)) as Record<string, unknown>;
 }
 
-describe('flag off', () => {
-  test('shows the coming-soon panel', () => {
+describe('before the opening date', () => {
+  const AT = RESERVATIONS_OPEN_AT.getTime();
+  const ONE_HOUR = 3_600_000;
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    jest.useRealTimers();
+  });
+
+  function clockAt(ms: number) {
+    return jest.spyOn(Date, 'now').mockReturnValue(ms);
+  }
+
+  test('shows the countdown and the dates, not the booking form', () => {
     setEnv(undefined, SITE_KEY);
+    clockAt(AT - ONE_HOUR);
     render(<TicketingSection />);
-    expect(screen.getByRole('heading', { name: 'Bientôt disponible' })).toBeInTheDocument();
+    expect(screen.getByText('15 novembre 2026')).toBeInTheDocument();
+    expect(screen.getByText(SHOW.label)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: (n) => n.includes(SHOW.label) })).not.toBeInTheDocument();
   });
 
-  test('makes no fetch call at all', async () => {
-    setEnv('false', SITE_KEY);
+  test.each([undefined, 'false', 'TRUE', ' true', '1'])('makes no fetch call and renders no widget (flag %j)', async (value) => {
+    setEnv(value, SITE_KEY);
+    clockAt(AT - ONE_HOUR);
     render(<TicketingSection />);
     await settle();
+    expect(screen.getByText('15 novembre 2026')).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
     expect(turnstile.render).not.toHaveBeenCalled();
   });
 
-  test.each(['TRUE', ' true', '1'])('only the exact value "true" enables ticketing (%j)', async (value) => {
-    setEnv(value, SITE_KEY);
-    render(<TicketingSection />);
-    await settle();
-    expect(screen.getByRole('heading', { name: 'Bientôt disponible' })).toBeInTheDocument();
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
   test('does not advertise reservations in the header', () => {
     setEnv(undefined, SITE_KEY);
+    clockAt(AT - ONE_HOUR);
     render(<TicketingSection />);
     expect(screen.queryByText(/réservation est obligatoire/)).not.toBeInTheDocument();
+  });
+
+  test('flips to the booking section by itself when the opening date arrives', async () => {
+    setEnv(undefined, SITE_KEY);
+    jest.useFakeTimers();
+    const now = clockAt(AT - 500);
+    render(<TicketingSection />);
+    expect(screen.queryByRole('button', { name: (n) => n.includes(SHOW.label) })).not.toBeInTheDocument();
+    now.mockReturnValue(AT);
+    act(() => {
+      jest.advanceTimersByTime(600);
+    });
+    expect(screen.getByRole('button', { name: (n) => n.includes(SHOW.label) })).toBeInTheDocument();
+    expect(screen.getByText('Réservations ouvertes')).toBeInTheDocument();
+  });
+});
+
+describe('after the opening date', () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  test('opens without the early-opening flag and fetches availability once', async () => {
+    setEnv(undefined, SITE_KEY);
+    jest.spyOn(Date, 'now').mockReturnValue(RESERVATIONS_OPEN_AT.getTime());
+    render(<TicketingSection />);
+    await settle();
+    expect(screen.getByRole('button', { name: (n) => n.includes(SHOW.label) })).toBeInTheDocument();
+    expect(gets()).toBe(1);
   });
 });
 

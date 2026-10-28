@@ -1,7 +1,7 @@
 import { redisSkipReason } from './helpers/redis-env';
 import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { retentionExpiry } from '../../src/config/shows';
+import { RESERVATIONS_OPEN_AT, retentionExpiry } from '../../src/config/shows';
 import { canonicalEmail } from '../_lib/guard';
 import { ERR, MSG } from '../_lib/http';
 import { claimAtomic, getReservation, keys, redis, type ReservationRecord } from '../_lib/redis';
@@ -217,7 +217,7 @@ describe('/api/reservation authz (nothing reaches Redis or Resend)', () => {
   });
 
   it('F3 refuses to confirm while the gate is closed', async () => {
-    const closed = makeDeps({ env: makeEnv({ RESERVATIONS_OPEN: undefined }) });
+    const closed = makeDeps({ env: makeEnv({ RESERVATIONS_OPEN: 'false' }) });
     const link = makeLink();
     const res = await confirm(closed, link.id, link.token);
     assert.equal(res.status, 403);
@@ -226,7 +226,7 @@ describe('/api/reservation authz (nothing reaches Redis or Resend)', () => {
   });
 
   it('F4b lets the gate win over the show start on confirm (403 closed, not show-started)', async () => {
-    const closed = makeDeps({ env: makeEnv({ RESERVATIONS_OPEN: undefined }) });
+    const closed = makeDeps({ env: makeEnv({ RESERVATIONS_OPEN: 'false' }) });
     const link = makeLink({}, { ttlSeconds: 400 * 86400 });
     closed.clock.now = SYNTH_START;
     const res = await confirm(closed, link.id, link.token);
@@ -351,11 +351,20 @@ describe('/api/reservation with Redis', { skip: redisSkipReason }, () => {
     });
 
     it('echoes open=false and still serves the preview while the gate is closed', async () => {
-      const closed = makeDeps({ env: makeEnv({ RESERVATIONS_OPEN: undefined }) });
+      const closed = makeDeps({ env: makeEnv({ RESERVATIONS_OPEN: 'false' }) });
       const link = makeLink();
       const res = await body(await preview(closed, link.id, link.token));
       assert.equal(res.open, false);
       assert.equal(res.status, 'claimable');
+    });
+
+    it('reports open from the opening date when the gate is unset', async () => {
+      const at = RESERVATIONS_OPEN_AT.getTime();
+      const link = makeLink();
+      const before = makeDeps({ now: at - 1, env: makeEnv({ RESERVATIONS_OPEN: undefined }) });
+      assert.equal((await body(await preview(before, link.id, link.token))).open, false);
+      const after = makeDeps({ now: at, env: makeEnv({ RESERVATIONS_OPEN: undefined }) });
+      assert.equal((await body(await preview(after, link.id, link.token))).open, true);
     });
 
     it('never writes: the keys are unchanged and only MGET or GET is issued', async () => {
@@ -642,7 +651,7 @@ describe('/api/reservation with Redis', { skip: redisSkipReason }, () => {
 
     it('still cancels while the reservation gate is closed', async () => {
       const { record } = await confirmed(h);
-      const closed = makeDeps({ env: makeEnv({ RESERVATIONS_OPEN: undefined }) });
+      const closed = makeDeps({ env: makeEnv({ RESERVATIONS_OPEN: 'false' }) });
       assert.equal((await cancel(closed, record.id, record.token)).status, 200);
     });
 

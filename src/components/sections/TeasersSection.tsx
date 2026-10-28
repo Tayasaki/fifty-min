@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Mic2, Heart, Calendar, Ticket, Gift, MessageCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { cn } from '../../lib/utils';
+import { ticketingOpen } from '../../config/features';
 
 interface Teaser {
   icon: React.ElementType;
@@ -86,7 +87,7 @@ const fadeUp = {
 };
 
 export default function TeasersSection() {
-  const teasers = buildTeasers(process.env.REACT_APP_SHOW_TICKETING === 'true');
+  const teasers = buildTeasers(ticketingOpen());
   return (
     <section id="teasers" className="bg-surface py-24">
       <div className="max-w-6xl mx-auto px-6">

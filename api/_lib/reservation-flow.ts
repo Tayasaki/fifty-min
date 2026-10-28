@@ -86,7 +86,7 @@ export async function handleReservationGet(request: Request, deps: Deps): Promis
   const query = new URL(request.url).searchParams;
   const parsed = parseLink(query.get('id'), query.get('token'));
   if (!parsed.ok) return parsed.response;
-  const open = isReservationsOpen(deps.env);
+  const open = isReservationsOpen(deps.env, deps.now());
 
   if (parsed.kind === 'signed') {
     const verified = verifySigned(parsed.id, parsed.token, deps);
@@ -138,7 +138,7 @@ async function confirmLink(id: string, token: string, deps: Deps): Promise<Respo
   if (!verified.ok) return verified.response;
   const { payload, show, venue } = verified;
 
-  if (!isReservationsOpen(deps.env)) return error(MSG.CLOSED, 403, { code: 'closed' });
+  if (!isReservationsOpen(deps.env, deps.now())) return error(MSG.CLOSED, 403, { code: 'closed' });
   if (started(show, deps)) return error(MSG.SHOW_STARTED, 409, { code: CODE_SHOW_STARTED });
 
   const canonical = canonicalEmail(payload.email);

@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from '../ui/button';
-import { MapPin, Clock, Ticket, MailCheck, AlertCircle, Accessibility } from 'lucide-react';
-import { MAX_TICKETS_PER_EMAIL, SHOWS, VENUES, type Show, getVenue } from '../../config/shows';
-import { getTurnstileSiteKey } from '../../config/features';
+import { MapPin, Clock, MailCheck, AlertCircle, Accessibility } from 'lucide-react';
+import { MAX_TICKETS_PER_EMAIL, SHOWS, VENUES, RESERVATIONS_OPEN_AT, type Show, getVenue, showStart } from '../../config/shows';
+import { getTurnstileSiteKey, ticketingOpen } from '../../config/features';
 import { CLOSED_COPY, PRIVACY_NOTICE, STARTED_LABEL, SUCCESS_TITLE, UNAVAILABLE_COPY, contactMailto, successText } from '../../config/billetterieCopy';
+import ReservationsCountdown from './ReservationsCountdown';
 import { cn } from '../../lib/utils';
 import { suggestEmail } from '../../lib/emailTypos';
 import { formatDateTime } from '../../lib/formatDateTime';
@@ -23,6 +24,26 @@ import {
 import TurnstileWidget from './TurnstileWidget';
 
 type SubmitState = { kind: 'idle' } | { kind: 'loading' } | { kind: 'error'; message: string };
+
+// setTimeout overflows past ~24.8 days, so long waits are re-armed in chunks.
+const MAX_TIMEOUT_MS = 2_147_483_647;
+
+/** True once reservations are open; flips by itself at the opening time. */
+function useReservationsOpen(): boolean {
+  const [open, setOpen] = useState(() => ticketingOpen());
+
+  useEffect(() => {
+    if (open) return;
+    const delay = RESERVATIONS_OPEN_AT.getTime() - Date.now();
+    const id = window.setTimeout(
+      () => setOpen(ticketingOpen()),
+      Math.min(Math.max(delay, 0), MAX_TIMEOUT_MS)
+    );
+    return () => window.clearTimeout(id);
+  }, [open]);
+
+  return open;
+}
 
 interface SuccessState {
   email: string;
@@ -289,27 +310,69 @@ function SectionHeader({ children }: { children?: React.ReactNode }) {
   );
 }
 
+// Same colour blocks as the poster's date visuals
+const VENUE_BAND_COLORS: Record<string, string> = {
+  monique: 'bg-[#D8C9DA]',
+  julienne: 'bg-[#A9CFD2]',
+};
+
+const MONTH_FMT = new Intl.DateTimeFormat('fr-CH', { month: 'long', year: 'numeric', timeZone: 'Europe/Zurich' });
+const DAY_FMT = new Intl.DateTimeFormat('fr-CH', { day: 'numeric', timeZone: 'Europe/Zurich' });
+
+/** "Du 11 au 14 mars 2027", derived from the shows config so it never drifts. */
+function venueDateRange(venueId: string): string {
+  const dates = SHOWS.filter((s) => s.venueId === venueId).map(showStart);
+  if (dates.length === 0) return '';
+  const first = dates[0];
+  const last = dates[dates.length - 1];
+  const day = (d: Date) => Number(DAY_FMT.format(d));
+  return `Du ${day(first)} au ${day(last)} ${MONTH_FMT.format(last)}`;
+}
+
+function VenueDateBand({ venueId }: { venueId: string }) {
+  return (
+    <div className={cn('px-6 py-5', VENUE_BAND_COLORS[venueId] ?? 'bg-surface-2')}>
+      <p className="text-xl md:text-2xl font-bold text-text-primary uppercase leading-tight">{venueDateRange(venueId)}</p>
+    </div>
+  );
+}
+
 function ComingSoonPanel() {
   return (
     <section id="billetterie" className="py-24 bg-background">
       <div className="max-w-6xl mx-auto px-6">
         <SectionHeader />
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          viewport={{ once: true }}
-          className="border-2 border-dashed border-purple/25 rounded-2xl flex flex-col items-center justify-center py-24 px-8 text-center bg-white/50 max-w-4xl mx-auto"
-        >
-          <motion.div animate={{ rotate: [0, 5, -5, 0] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}>
-            <Ticket size={48} className="text-purple/50 mb-6" />
-          </motion.div>
-          <h3 className="font-display text-2xl font-bold text-text-primary mb-3">Bientôt disponible</h3>
-          <p className="text-text-muted max-w-md leading-relaxed">
-            La billetterie pour <span className="text-purple">15 minutes</span> ouvrira très prochainement. Restez
-            connecté·e·s !
-          </p>
-        </motion.div>
+        <ReservationsCountdown />
+
+            {/* Dates preview, in the poster's colours */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mt-8">
+              {VENUES.map((venue, i) => (
+                <motion.div
+                  key={venue.id}
+                  initial={{ opacity: 0, y: 40 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.55, delay: i * 0.12 }}
+                  viewport={{ once: true }}
+                  className="bg-white rounded-2xl shadow-card border border-black/6 overflow-hidden"
+                >
+                  <VenueDateBand venueId={venue.id} />
+                  <div className="p-6">
+                    <p className="font-semibold uppercase tracking-wide text-sm text-text-primary">
+                      {venue.name} · {venue.location}
+                    </p>
+                    <div className="h-1 w-20 bg-[#9497AE] rounded my-4" />
+                    <ul className="flex flex-col gap-1.5">
+                      {SHOWS.filter((s) => s.venueId === venue.id).map((show) => (
+                        <li key={show.id} className="flex items-center gap-2 text-sm text-text-muted">
+                          <Clock size={13} className="text-purple shrink-0" />
+                          {show.label}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
       </div>
     </section>
   );
@@ -360,8 +423,10 @@ function TicketingPanel() {
           </p>
         </SectionHeader>
 
+            <ReservationsCountdown open />
+
             {/* Venue cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mt-8">
               {VENUES.map((venue, i) => (
                 <motion.div
                   key={venue.id}
@@ -369,19 +434,23 @@ function TicketingPanel() {
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.55, delay: i * 0.12 }}
                   viewport={{ once: true }}
-                  className="bg-white/70 backdrop-blur-sm rounded-2xl p-8 shadow-card flex flex-col gap-6 border border-black/6"
+                  className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-card flex flex-col border border-black/6 overflow-hidden"
                 >
+                  <VenueDateBand venueId={venue.id} />
+                  <div className="p-6 flex flex-col gap-5">
                   <div>
-                    <div className="flex items-start gap-2 mb-1">
-                      <MapPin size={15} className="text-text-muted mt-0.5 shrink-0" />
-                      <span className="text-text-muted text-xs uppercase tracking-wide">{venue.location}</span>
-                    </div>
-                    <h3 className="font-display text-xl font-bold text-text-primary uppercase leading-snug">{venue.name}</h3>
-                    <p className="text-text-muted text-sm mt-2">{venue.address}</p>
+                    <h3 className="font-semibold uppercase tracking-wide text-sm text-text-primary">
+                      {venue.name} · {venue.location}
+                    </h3>
+                    <p className="flex items-start gap-1.5 text-text-muted text-sm mt-2">
+                      <MapPin size={14} className="mt-0.5 shrink-0" />
+                      {venue.address}
+                    </p>
                     <p className="flex items-center gap-1.5 text-teal-deep text-xs mt-1">
                       <Accessibility size={13} className="shrink-0" />
                       {venue.accessibility}
                     </p>
+                    <div className="h-1 w-20 bg-[#9497AE] rounded mt-4" />
                   </div>
 
                   <ul className="flex flex-col gap-2">
@@ -416,6 +485,7 @@ function TicketingPanel() {
                       );
                     })}
                   </ul>
+                  </div>
                 </motion.div>
               ))}
             </div>
@@ -492,5 +562,6 @@ function TicketingPanel() {
 }
 
 export default function TicketingSection() {
-  return process.env.REACT_APP_SHOW_TICKETING === 'true' ? <TicketingPanel /> : <ComingSoonPanel />;
+  const open = useReservationsOpen();
+  return open ? <TicketingPanel /> : <ComingSoonPanel />;
 }

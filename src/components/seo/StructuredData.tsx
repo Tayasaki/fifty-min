@@ -1,6 +1,7 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { SITE_URL } from '../../config/seo';
+import { ticketingOpen } from '../../config/features';
 
 const ORGANIZATION = {
   '@context': 'https://schema.org',
@@ -121,7 +122,7 @@ export function OrganizationLD() {
 export function TheaterEventLD() {
   return (
     <Helmet>
-      <script type="application/ld+json">{JSON.stringify(theaterEvent(process.env.REACT_APP_SHOW_TICKETING === 'true' ? TICKETING_OFFER : null))}</script>
+      <script type="application/ld+json">{JSON.stringify(theaterEvent(ticketingOpen() ? TICKETING_OFFER : null))}</script>
     </Helmet>
   );
 }

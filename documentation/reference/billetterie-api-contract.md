@@ -35,7 +35,7 @@ Server contract for the reservation flow in `api/`. A request mails a signed lin
 
 ## Gates and rules
 
-- `RESERVATIONS_OPEN` must be `true` (trimmed, case-insensitive) for `POST /api/reserve` and for confirm. Preview and cancel always work; `open` is echoed. A change needs a redeploy on Vercel (variables bind at deploy time), then about 10 s of CDN cache.
+- Opening: `RESERVATIONS_OPEN` unset or empty lets the opening date decide (`RESERVATIONS_OPEN_AT`, 15 November 2026 00:00 Geneva time; `REACT_APP_SHOW_TICKETING=true` in the API environment opens early like it does for the page); `true` (trimmed, case-insensitive) opens early; any other value (`false`, a typo) closes, even after the date. The gate applies to `POST /api/reserve` and to confirm. Preview and cancel always work; `open` is echoed. A change needs a redeploy on Vercel (variables bind at deploy time), then about 10 s of CDN cache.
 - Reserve, confirm and cancel are all refused with `409 show-started` from the start instant of the show (`now >= start`); `403 closed` is the `RESERVATIONS_OPEN` gate on reserve and confirm only. `closed` therefore means the whole service is closed, `show-started` means that one show is. On confirm the gate is checked first; on reserve the fields (including the show start) are validated before the gate.
 - `ADMIN_TOKEN` and `LINK_SECRET` must be at least 32 characters (`MIN_SECRET_LENGTH`); a shorter `ADMIN_TOKEN` answers 503 before any Bearer check.
 - The request mail greets with `Bonjour,` and carries no text chosen by the requester: it is the only mail sent without proof of mailbox ownership. Recap and cancellation mails greet by name.

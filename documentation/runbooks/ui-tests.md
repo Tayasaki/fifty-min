@@ -36,7 +36,7 @@ The `react-router/dom` entry points into pnpm's hoisted layout (`node_modules/.p
 - Helpers live in `src/__tests__/helpers/`: `turnstile.ts` (fake `window.turnstile`; `installFakeTurnstile`, `uninstallFakeTurnstile`) and `fetch.ts` (`fakeResponse`, `installFetch`, `uninstallFetch`; jsdom has no `Response`).
 - No test reaches Cloudflare, Resend or Upstash: `window.turnstile` is faked and `fetch` is stubbed.
 - One env value per render. Set `process.env.REACT_APP_*` before rendering and restore it in `afterEach`. Do not use `jest.isolateModules`: it loads a second React and breaks hooks.
-- The ticketing flag is the literal `process.env.REACT_APP_SHOW_TICKETING === 'true'` written where it gates code, so the bundler removes disabled branches.
+- Whether ticketing is open is `ticketingOpen()` in `src/config/features.ts`: the opening date decides, `REACT_APP_SHOW_TICKETING=true` opens early. Tests that mean "before opening" must pin the clock (`jest.spyOn(Date, 'now')` to `RESERVATIONS_OPEN_AT - 1 h`), otherwise they flip on 15 November.
 
 ## Build checks
 
@@ -46,7 +46,7 @@ env -u REACT_APP_SHOW_TICKETING BUILD_PATH=$(mktemp -d) pnpm exec react-scripts 
 pnpm exec tsc -p tsconfig.json --noEmit --ignoreDeprecations 6.0
 ```
 
-Both builds print `Compiled successfully.` without ESLint warnings. In the flag-off build, `grep -l "api/availability\|challenges.cloudflare\|PreOrder" <build>/static/js/*.js` finds nothing; the flag-on build contains them. `.env` sets `REACT_APP_SHOW_TICKETING=false`, so "unset" in the shell is still the off state. `react-snap` (postbuild) is not part of these checks. The root `tsconfig.json` needs `--ignoreDeprecations 6.0` (TS5107, unrelated to the tests).
+Both builds print `Compiled successfully.` without ESLint warnings. The booking code ships in both builds because the page opens by itself at the opening date; the variable only opens it early. `.env` sets `REACT_APP_SHOW_TICKETING=false`. `react-snap` (postbuild) is not part of these checks. The root `tsconfig.json` needs `--ignoreDeprecations 6.0` (TS5107, unrelated to the tests).
 
 ## Turnstile test keys (Cloudflare published)
 

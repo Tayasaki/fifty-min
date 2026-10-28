@@ -30,14 +30,16 @@ Les places ne sont **pas bloquées** à la demande : elles sont attribuées au c
 | `POST /api/reservation` | `confirm` ou `cancel` |
 | `GET /api/reservations` | export CSV pour l'accueil (en-tête `Authorization`) |
 
-Deux interrupteurs distincts :
+L'ouverture suit une date, avec deux variables pour la forcer :
 
-| Interrupteur | Type | Effet | Pour le changer |
+- **Date d'ouverture** : `RESERVATIONS_OPEN_AT` dans `src/config/shows.ts` (15 novembre 2026, 00 h, heure de Genève). À cette date la page passe d'elle-même du compte à rebours au formulaire, sans redéploiement, et l'API accepte les demandes.
+
+| Variable | Type | Effet | Pour la changer |
 |---|---|---|---|
-| `REACT_APP_SHOW_TICKETING` | compilation | la page affiche le formulaire (valeur exacte `true`) ou « Bientôt disponible » | reconstruire (redéployer) |
-| `RESERVATIONS_OPEN` | exécution | le serveur accepte demandes et confirmations (valeur `true`, casse et espaces ignorés) | modifier la variable **puis redéployer** : Vercel lie les variables au déploiement |
+| `REACT_APP_SHOW_TICKETING` | compilation | valeur exacte `true` : ouvre la page en avance (aperçus). Côté API elle ouvre aussi en avance quand `RESERVATIONS_OPEN` n'est pas défini | reconstruire (redéployer) |
+| `RESERVATIONS_OPEN` | exécution | non défini : la date décide ; `true` (casse et espaces ignorés) : ouvre en avance ; toute autre valeur (`false`, faute de frappe) : **fermé**, même après la date | modifier la variable **puis redéployer** : Vercel lie les variables au déploiement |
 
-Si `RESERVATIONS_OPEN` n'est pas défini, les réservations sont **fermées**. L'annulation et la lecture des liens restent possibles quand c'est fermé.
+Fermé ne bloque pas l'annulation ni la lecture des liens. Sans `REACT_APP_SHOW_TICKETING`, le code de réservation est quand même présent dans le site : c'est la date (ou `RESERVATIONS_OPEN=true`) qui l'affiche.
 
 ## Variables d'environnement
 
@@ -54,8 +56,8 @@ Si `RESERVATIONS_OPEN` n'est pas défini, les réservations sont **fermées**. L
 | `ADMIN_TOKEN` | exécution | pour l'export | au moins 32 caractères ; en dessous, l'export répond 503 |
 | `TURNSTILE_SECRET_KEY` | exécution | oui | sans clé, 503 (le captcha ne laisse rien passer) |
 | `REACT_APP_TURNSTILE_SITE_KEY` | compilation | oui avec le formulaire | absente : le formulaire affiche le panneau « indisponible » |
-| `REACT_APP_SHOW_TICKETING` | compilation | non | `true` ouvre l'affichage du formulaire |
-| `RESERVATIONS_OPEN` | exécution | non | non défini = fermé |
+| `REACT_APP_SHOW_TICKETING` | compilation | non | `true` ouvre la page en avance ; sans elle, la date d'ouverture décide |
+| `RESERVATIONS_OPEN` | exécution | non | non défini : la date d'ouverture décide ; `false` ferme ; `true` ouvre en avance |
 | `PUBLIC_SITE_URL` | exécution | non | forcer l'adresse publique des liens ; laisser vide (voir plus bas) |
 
 Variables système Vercel lues par `api/_lib/site.ts` : `VERCEL_ENV`, `VERCEL_URL`, `VERCEL_BRANCH_URL`, `VERCEL_PROJECT_PRODUCTION_URL`.
@@ -74,8 +76,8 @@ Matrice recommandée (une base Redis et une clé Resend **par environnement**, s
 | `RESEND_API_KEY` | clé de production | clé distincte | idem Preview |
 | `TURNSTILE_SECRET_KEY`, `REACT_APP_TURNSTILE_SITE_KEY` | widget de production | widget de prévisualisation ou paire de test | paire de test |
 | `LINK_SECRET`, `ADMIN_TOKEN` | valeurs propres, 32 caractères ou plus | valeurs différentes | valeurs différentes |
-| `RESERVATIONS_OPEN` | non défini ou `false` jusqu'à l'ouverture | `true` pour les tests | `true` |
-| `REACT_APP_SHOW_TICKETING` | `true` à l'ouverture | `true` | `true` |
+| `RESERVATIONS_OPEN` | non défini (la date du 15 novembre ouvre) ; `false` pour garder fermé | `true` pour les tests | `true` |
+| `REACT_APP_SHOW_TICKETING` | non défini (la date ouvre) | `true` | `true` |
 
 La paire de test Cloudflare (toujours valide) est donnée dans `documentation/runbooks/ui-tests.md`. Ne jamais la laisser en production.
 
@@ -151,7 +153,8 @@ Détails : `documentation/runbooks/api-tests.md` et `documentation/runbooks/ui-t
 
 ## Limites connues
 
-- La version compilée sans `REACT_APP_SHOW_TICKETING` contient encore une phrase d'accroche qui n'est jamais affichée (`buildTeasers` reçoit l'indicateur à l'exécution). Correctif d'une ligne : passer la chaîne de description à `buildTeasers`.
+- Textes à harmoniser par l'association : le bandeau du compte à rebours dit « Réservation recommandée · Chapeau à la sortie » alors que le formulaire dit que la réservation est obligatoire.
+- Une horloge de visiteur en avance ne change rien : l'API décide avec l'heure du serveur.
 - `react-snap` n'a pas pu pré-générer `/billetterie` lors des essais locaux (4 essais sur 4 en échec, masqués par `|| true`). La page fonctionne côté navigateur ; le pré-rendu est à contrôler dans le journal de build Vercel.
 - Une date commencée reste affichée jusqu'au clic : l'API répond `show-started`, la page désactive cette date et laisse les autres réservables.
 - Le budget d'envoi (`DAILY_REQUEST_EMAIL_BUDGET`, 60 par jour UTC) compte les emails de demande, de récapitulatif et d'annulation dans un même compteur et ne refuse que les nouvelles demandes.

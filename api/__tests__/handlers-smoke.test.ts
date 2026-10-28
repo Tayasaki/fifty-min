@@ -33,7 +33,7 @@ const savedEnv = { VERCEL_ENV: process.env.VERCEL_ENV, RESERVATIONS_OPEN: proces
 // Production-shaped environment, independent of the developer's shell.
 function useProductionEnv(): void {
   process.env.VERCEL_ENV = 'production';
-  delete process.env.RESERVATIONS_OPEN;
+  process.env.RESERVATIONS_OPEN = 'false';
 }
 
 function restoreEnv(): void {

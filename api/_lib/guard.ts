@@ -1,4 +1,4 @@
-import { MAX_TICKETS_PER_EMAIL, getShow, getVenue, showStart, type Show, type Venue } from '../../src/config/shows';
+import { MAX_TICKETS_PER_EMAIL, getShow, getVenue, reservationsOpen, showStart, type Show, type Venue } from '../../src/config/shows';
 import { CODE_SHOW_STARTED, ERR, MSG } from './http';
 
 export interface ReserveFields {
@@ -83,8 +83,15 @@ export function isHoneypotFilled(body: Record<string, unknown>): boolean {
   return Boolean(body.website);
 }
 
-export function isReservationsOpen(env: Record<string, string | undefined>): boolean {
-  return (env.RESERVATIONS_OPEN ?? '').trim().toLowerCase() === 'true';
+/**
+ * Whether bookings are accepted at `now`. RESERVATIONS_OPEN unset (or empty): the opening date decides
+ * (RESERVATIONS_OPEN_AT in src/config/shows.ts), and REACT_APP_SHOW_TICKETING=true opens early like it does for the UI
+ * (previews). RESERVATIONS_OPEN=`true` also opens early; any other value (`false`, a typo) closes.
+ */
+export function isReservationsOpen(env: Record<string, string | undefined>, now: number): boolean {
+  const value = (env.RESERVATIONS_OPEN ?? '').trim().toLowerCase();
+  if (value === '') return reservationsOpen(now, env.REACT_APP_SHOW_TICKETING === 'true');
+  return value === 'true';
 }
 
 export function validateName(raw: unknown): { ok: true; value: string } | { ok: false; message: string } {

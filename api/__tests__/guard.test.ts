@@ -12,7 +12,7 @@ import {
   validateName,
   validateReserveFields,
 } from '../_lib/guard';
-import { SHOWS, getShow, getVenue, showStart } from '../../src/config/shows';
+import { RESERVATIONS_OPEN_AT, SHOWS, getShow, getVenue, showStart } from '../../src/config/shows';
 import { ERR, MSG } from '../_lib/http';
 
 const SHOW_ID = '2027-02-20-monique';
@@ -130,14 +130,40 @@ describe('isHoneypotFilled', () => {
 });
 
 describe('isReservationsOpen', () => {
-  const cases: Array<[string | undefined, boolean]> = [
-    ['true', true], [' TRUE ', true], [undefined, false], ['', false], ['1', false], ['false', false], ['yes', false],
+  const AT = RESERVATIONS_OPEN_AT.getTime();
+  // [RESERVATIONS_OPEN, now, expected]: unset or empty lets the opening date decide; any other value overrides it.
+  const cases: Array<[string | undefined, number, boolean]> = [
+    [undefined, AT - 1, false], [undefined, AT, true], [undefined, AT + 86_400_000, true],
+    ['', AT - 1, false], ['', AT, true], ['  ', AT - 1, false], ['  ', AT, true],
+    ['true', AT - 86_400_000, true], [' TRUE ', AT - 1, true], ['true', AT + 1, true],
+    ['false', AT - 1, false], ['false', AT + 86_400_000, false], [' FALSE ', AT + 1, false],
+    ['1', AT + 86_400_000, false], ['yes', AT + 86_400_000, false], ['ture', AT + 86_400_000, false],
   ];
-  for (const [value, expected] of cases) {
-    it(`is ${expected} for ${JSON.stringify(value)}`, () => {
-      assert.equal(isReservationsOpen({ RESERVATIONS_OPEN: value }), expected);
+  for (const [value, now, expected] of cases) {
+    const when = now < AT ? 'before' : 'after';
+    it(`is ${expected} for ${JSON.stringify(value)} ${when} the opening date`, () => {
+      assert.equal(isReservationsOpen({ RESERVATIONS_OPEN: value }, now), expected);
     });
   }
+});
+
+describe('isReservationsOpen with the early-opening build flag', () => {
+  const AT = RESERVATIONS_OPEN_AT.getTime();
+
+  it('opens before the date when REACT_APP_SHOW_TICKETING is true and RESERVATIONS_OPEN is unset', () => {
+    assert.equal(isReservationsOpen({ REACT_APP_SHOW_TICKETING: 'true' }, AT - 86_400_000), true);
+  });
+
+  it('is not opened by other values of the build flag', () => {
+    for (const flag of ['false', 'TRUE', '1', '']) {
+      assert.equal(isReservationsOpen({ REACT_APP_SHOW_TICKETING: flag }, AT - 1), false, flag);
+    }
+  });
+
+  it('lets RESERVATIONS_OPEN=false win over the build flag', () => {
+    assert.equal(isReservationsOpen({ REACT_APP_SHOW_TICKETING: 'true', RESERVATIONS_OPEN: 'false' }, AT - 1), false);
+    assert.equal(isReservationsOpen({ REACT_APP_SHOW_TICKETING: 'true', RESERVATIONS_OPEN: 'false' }, AT + 86_400_000), false);
+  });
 });
 
 describe('validateName', () => {

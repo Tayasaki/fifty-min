@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { PAGE_META, SITE_URL } from '../config/seo';
+import { RESERVATIONS_OPEN_AT } from '../config/shows';
 import TeasersSection, { buildTeasers } from '../components/sections/TeasersSection';
 import { TICKETING_OFFER, theaterEvent } from '../components/seo/StructuredData';
 
@@ -78,7 +79,15 @@ function expectNoForbidden(text: string) {
   FORBIDDEN_WHEN_OFF.forEach((word) => expect(text).not.toContain(word));
 }
 
+// The "off" states mean "before the opening date": pin the clock so they do not flip on 15 November.
+const BEFORE_OPENING = RESERVATIONS_OPEN_AT.getTime() - 3_600_000;
+
+beforeEach(() => {
+  jest.spyOn(Date, 'now').mockReturnValue(BEFORE_OPENING);
+});
+
 afterEach(() => {
+  jest.restoreAllMocks();
   setFlag(saved);
 });
 
@@ -194,5 +203,27 @@ describe('TeasersSection render', () => {
         .map((t) => [t.to, t.title, t.description]);
     expect(others(false)).toEqual(others(true));
     expect(others(true)).toHaveLength(5);
+  });
+});
+
+describe('after the opening date', () => {
+  test.each([undefined, 'false'])('the copy is open without the early-opening flag (flag %j)', (value) => {
+    jest.spyOn(Date, 'now').mockReturnValue(RESERVATIONS_OPEN_AT.getTime());
+    setFlag(value);
+    expect(PAGE_META.billetterie.description).toBe(BILLETTERIE_ON);
+    expect(PAGE_META.agenda.description).toBe(AGENDA_ON);
+    render(
+      <MemoryRouter>
+        <TeasersSection />
+      </MemoryRouter>
+    );
+    expect(screen.getByText(TEASER_ON)).toBeInTheDocument();
+    expect(screen.queryByText(TEASER_OFF)).not.toBeInTheDocument();
+  });
+
+  test('one second before the opening date the copy is still closed', () => {
+    jest.spyOn(Date, 'now').mockReturnValue(RESERVATIONS_OPEN_AT.getTime() - 1000);
+    setFlag(undefined);
+    expect(PAGE_META.billetterie.description).toBe(BILLETTERIE_OFF);
   });
 });
