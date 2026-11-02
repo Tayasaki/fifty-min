@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { ChevronDown } from 'lucide-react';
+import afficheTitre from '../../assets/affiche/affiche-titre.jpg';
 
 const MusicalNote = ({ className, delay = 0, symbol = '♪' }: { className: string; delay?: number; symbol?: string }) => (
   <motion.div
@@ -62,11 +63,12 @@ export default function HeroSection() {
       <MusicalNote className="text-3xl bottom-[40%] left-[5%] text-gold/30" delay={0.3} />
 
       {/* Content */}
+      <div className="relative z-10 w-full max-w-6xl mx-auto px-6 pt-24 pb-20 grid lg:grid-cols-[1.15fr_0.85fr] gap-12 lg:gap-16 items-center">
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="relative z-10 text-center px-6 max-w-4xl mx-auto"
+        className="text-center lg:text-left"
       >
         {/* Kicker */}
         <motion.p
@@ -76,23 +78,31 @@ export default function HeroSection() {
           Mélange de Genres · Saison 2026–2027
         </motion.p>
 
-        {/* Title */}
+        {/* Title — chromatic offset echoing the poster */}
         <motion.h1
           variants={itemVariants}
-          className="font-display font-bold leading-none mb-6"
+          className="font-display font-bold leading-none mb-6 text-text-primary"
         >
-          <span className="block text-[clamp(4rem,14vw,9rem)] teal-gradient-text">
+          <span className="block text-[clamp(4rem,12vw,8rem)] glitch-text">
             15
           </span>
-          <span className="block text-[clamp(2rem,8vw,5rem)] text-text-primary -mt-4">
+          <span className="block text-[clamp(2rem,7vw,4.5rem)] -mt-3 glitch-text">
             minutes
           </span>
         </motion.h1>
 
+        <motion.p
+          variants={itemVariants}
+          className="text-text-muted text-xs sm:text-sm uppercase tracking-[0.18em] mb-8"
+        >
+          Une comédie musicale originale écrite par{' '}
+          <span className="font-semibold text-text-primary">Nora Spycher</span>
+        </motion.p>
+
         {/* Quote */}
         <motion.blockquote
           variants={itemVariants}
-          className="font-display italic text-text-muted text-lg md:text-xl mb-4 max-w-2xl mx-auto"
+          className="font-display italic text-text-muted text-lg md:text-xl mb-4 max-w-2xl mx-auto lg:mx-0"
         >
           « À l'avenir, chacun aura droit à quinze minutes de célébrité. »
         </motion.blockquote>
@@ -103,7 +113,7 @@ export default function HeroSection() {
         {/* Description */}
         <motion.p
           variants={itemVariants}
-          className="text-text-muted text-base md:text-lg leading-relaxed mb-12 max-w-2xl mx-auto"
+          className="text-text-muted text-base md:text-lg leading-relaxed mb-10 max-w-2xl mx-auto lg:mx-0"
         >
           La première comédie musicale originale de notre association. Une exploration
           de la célébrité éphémère à l'ère des réseaux sociaux, portée par une vingtaine
@@ -113,7 +123,7 @@ export default function HeroSection() {
         {/* CTAs */}
         <motion.div
           variants={itemVariants}
-          className="flex flex-col sm:flex-row gap-4 justify-center"
+          className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
         >
           <Button size="lg" onClick={goToShow}>
             Découvrir le spectacle
@@ -123,6 +133,25 @@ export default function HeroSection() {
           </Button>
         </motion.div>
       </motion.div>
+
+      {/* Poster */}
+      <motion.figure
+        initial={{ opacity: 0, y: 40, rotate: 0 }}
+        animate={{ opacity: 1, y: 0, rotate: 2 }}
+        whileHover={{ rotate: 0, scale: 1.02 }}
+        transition={{ duration: 0.9, ease: 'easeOut' as const, delay: 0.3 }}
+        className="relative mx-auto w-full max-w-[20rem] lg:max-w-[26rem]"
+      >
+        <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-teal/30 via-purple/25 to-transparent blur-2xl" />
+        <img
+          src={afficheTitre}
+          alt="Affiche de 15 minutes : une foule de mains brandissant des téléphones forme un grand cercle sous le titre."
+          className="relative rounded-xl shadow-card-hover ring-1 ring-black/5 w-full h-auto"
+          width={1080}
+          height={1440}
+        />
+      </motion.figure>
+      </div>
 
       {/* Scroll indicator */}
       <motion.button

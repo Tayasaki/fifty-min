@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { Users, Music, Mic2, BookOpen, RotateCcw } from 'lucide-react';
+import { Users, Music, Mic2, BookOpen, RotateCcw, Download, X } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import afficheComplete from '../../assets/affiche/affiche-complete.jpg';
+
+const POSTER_ALT =
+  "Affiche officielle de 15 minutes : une foule de mains brandissant des téléphones s'élève au-dessus d'un jeune de dos. Du 19 au 21 février 2027 au Théâtre Le Monique à Cointrin, du 11 au 14 mars 2027 au Théâtre de la Julienne à Plan-les-Ouates.";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
@@ -111,6 +115,14 @@ const infoCards: InfoCard[] = [
 
 export default function ShowSection() {
   const [flippedIndex, setFlippedIndex] = useState<number | null>(null);
+  const [posterOpen, setPosterOpen] = useState(false);
+
+  useEffect(() => {
+    if (!posterOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setPosterOpen(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [posterOpen]);
 
   const toggleFlip = (i: number) => {
     setFlippedIndex(flippedIndex === i ? null : i);
@@ -125,18 +137,79 @@ export default function ShowSection() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: '-80px' }}
-          className="mb-16"
+          className="mb-16 grid md:grid-cols-[1.3fr_0.7fr] gap-10 md:gap-14 items-center"
         >
-          <p className="text-teal text-sm font-medium tracking-widest uppercase mb-3">
-            Saison 2026–2027
-          </p>
-          <h2 className="section-title">Le spectacle</h2>
-          <div className="divider-teal" />
-          <p className="section-subtitle">
-            Six jeunes dont la vie bascule lorsqu'une vidéo publiée sans intention particulière
-            devient virale. Une plongée dans les réalités du monde de l'influence.
-          </p>
+          <div>
+            <p className="text-teal text-sm font-medium tracking-widest uppercase mb-3">
+              Saison 2026–2027
+            </p>
+            <h2 className="section-title">Le spectacle</h2>
+            <div className="divider-teal" />
+            <p className="section-subtitle">
+              Six jeunes dont la vie bascule lorsqu'une vidéo publiée sans intention particulière
+              devient virale. Une plongée dans les réalités du monde de l'influence.
+            </p>
+            <p className="mt-6 text-text-muted text-sm uppercase tracking-[0.18em]">
+              Une comédie musicale originale écrite par{' '}
+              <span className="font-semibold text-text-primary">Nora Spycher</span>
+            </p>
+          </div>
+
+          {/* Official poster */}
+          <figure className="mx-auto w-full max-w-[18rem]">
+            <button
+              type="button"
+              onClick={() => setPosterOpen(true)}
+              className="block w-full cursor-zoom-in rounded-xl overflow-hidden shadow-card-hover ring-1 ring-black/5 transition-transform duration-500 rotate-[-1.5deg] hover:rotate-0 hover:scale-[1.02]"
+              aria-label="Agrandir l'affiche"
+            >
+              <img src={afficheComplete} alt={POSTER_ALT} className="w-full h-auto" width={1131} height={1600} />
+            </button>
+            <figcaption className="mt-5 text-center">
+              <a
+                href={afficheComplete}
+                download="affiche-15-minutes.jpg"
+                className="inline-flex items-center gap-2 text-sm font-medium text-teal-deep border border-teal/40 rounded-full px-4 py-2 hover:bg-teal/10 transition-colors"
+              >
+                <Download size={15} />
+                Télécharger l'affiche
+              </a>
+            </figcaption>
+          </figure>
         </motion.div>
+
+        {/* Poster lightbox */}
+        <AnimatePresence>
+          {posterOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setPosterOpen(false)}
+              className="fixed inset-0 z-[60] bg-[#1F1F2E]/85 backdrop-blur-sm flex items-center justify-center p-4 cursor-zoom-out"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Affiche du spectacle"
+            >
+              <motion.img
+                initial={{ scale: 0.92 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.92 }}
+                src={afficheComplete}
+                alt={POSTER_ALT}
+                className="max-h-[92vh] w-auto rounded-lg shadow-2xl"
+              />
+              <button
+                type="button"
+                onClick={() => setPosterOpen(false)}
+                className="absolute top-4 right-4 text-white/80 hover:text-white p-2"
+                aria-label="Fermer"
+              >
+                <X size={28} />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Info cards — 2×2 grid, click to flip */}
         <motion.div

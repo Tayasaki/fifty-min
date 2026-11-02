@@ -129,9 +129,9 @@ export default function ContactSection() {
               <motion.div
                 animate={{ scale: [1, 1.05, 1] }}
                 transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' as const }}
-                className="text-5xl mb-4"
+                className="mx-auto mb-4 w-16 h-16 rounded-full bg-teal/10 flex items-center justify-center"
               >
-                ✉️
+                <Mail size={30} strokeWidth={1.25} className="text-teal-deep" />
               </motion.div>
               <h3 className="font-display text-xl font-bold text-text-primary mb-3">
                 Envoyez-nous un message
