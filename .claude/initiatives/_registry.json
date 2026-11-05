@@ -1,0 +1,18 @@
+{
+  "version": "3.0",
+  "focus": "billetterie-claim-on-confirm",
+  "lastUpdated": "2026-10-27T17:36:41Z",
+  "initiatives": [
+    {
+      "name": "billetterie-claim-on-confirm",
+      "displayName": "Billetterie: claim seats on email confirmation (ADR-002)",
+      "priority": 1,
+      "status": "completed",
+      "dependsOn": [],
+      "relatedTo": [],
+      "blockedBy": [],
+      "created": "2026-10-27T13:10:00Z"
+    }
+  ],
+  "archived": []
+}

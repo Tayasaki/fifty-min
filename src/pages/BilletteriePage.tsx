@@ -8,13 +8,13 @@ import ReservationAction from '../components/sections/ReservationAction';
 
 export default function BilletteriePage() {
   const [searchParams] = useSearchParams();
-  const token = searchParams.get('token');
+  const token = searchParams.get('token') ?? '';
   const confirmId = searchParams.get('confirmer');
   const cancelId = searchParams.get('annuler');
 
   let content = <TicketingSection />;
-  if (token && confirmId) content = <ReservationAction action="confirm" id={confirmId} token={token} />;
-  else if (token && cancelId) content = <ReservationAction action="cancel" id={cancelId} token={token} />;
+  if (confirmId !== null) content = <ReservationAction action="confirm" id={confirmId} token={token} />;
+  else if (cancelId !== null) content = <ReservationAction action="cancel" id={cancelId} token={token} />;
 
   return (
     <div className="pt-16 bg-background flex-1">
