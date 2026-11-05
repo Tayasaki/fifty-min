@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/react';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import ScrollToTop from './components/ScrollToTop';
+import { SpeedInsights } from "@vercel/speed-insights/react"
 
 const HomePage = lazy(() => import('./pages/HomePage'));
 const SpectaclePage = lazy(() => import('./pages/SpectaclePage'));
@@ -35,6 +36,7 @@ function App() {
         </main>
         <Footer />
         <Analytics />
+	<SpeedInsights />
       </div>
     </BrowserRouter>
   );
