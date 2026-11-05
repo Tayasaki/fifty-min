@@ -168,7 +168,7 @@ describe('before the opening date', () => {
     setEnv(undefined, SITE_KEY);
     clockAt(AT - ONE_HOUR);
     render(<TicketingSection />);
-    expect(screen.queryByText(/réservation est obligatoire/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Réservations ouvertes')).not.toBeInTheDocument();
   });
 
   test('flips to the booking section by itself when the opening date arrives', async () => {
@@ -232,6 +232,29 @@ describe('flag on: availability', () => {
     SHOWS.forEach((s) => expect(showButton(s.label)).toBeDisabled());
     expect(screen.queryByText('Sélectionnez une date pour réserver vos places.')).not.toBeInTheDocument();
     expect(turnstile.render).not.toHaveBeenCalled();
+  });
+
+  test('open === false after the opening date drops the banner instead of claiming reservations are open', async () => {
+    server.open = false;
+    jest.spyOn(Date, 'now').mockReturnValue(RESERVATIONS_OPEN_AT.getTime() + 3_600_000);
+    await renderSection();
+    expect(screen.getByText(CLOSED_COPY.text)).toBeInTheDocument();
+    expect(screen.queryByText('Réservations ouvertes')).not.toBeInTheDocument();
+    expect(screen.queryByText('15 novembre 2026')).not.toBeInTheDocument();
+  });
+
+  test('open === false before the opening date (early-opening flag) shows the countdown', async () => {
+    server.open = false;
+    jest.spyOn(Date, 'now').mockReturnValue(RESERVATIONS_OPEN_AT.getTime() - 3_600_000);
+    await renderSection();
+    expect(screen.getByText(CLOSED_COPY.text)).toBeInTheDocument();
+    expect(screen.queryByText('Réservations ouvertes')).not.toBeInTheDocument();
+    expect(screen.getByText('15 novembre 2026')).toBeInTheDocument();
+  });
+
+  test('open === true shows the open banner', async () => {
+    await renderSection();
+    expect(screen.getByText('Réservations ouvertes')).toBeInTheDocument();
   });
 
   test('open === true keeps the hint and the form available', async () => {

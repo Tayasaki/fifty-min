@@ -64,7 +64,8 @@
     "moduleNameMapper": {
       "^react-router-dom$": "<rootDir>/node_modules/react-router-dom/dist/index.js",
       "^react-router/dom$": "<rootDir>/node_modules/.pnpm/node_modules/react-router/dist/development/dom-export.js",
-      "^@vercel/analytics/react$": "<rootDir>/node_modules/@vercel/analytics/dist/react/index.js"
+      "^@vercel/analytics/react$": "<rootDir>/node_modules/@vercel/analytics/dist/react/index.js",
+      "^@vercel/speed-insights/react$": "<rootDir>/node_modules/@vercel/speed-insights/dist/react/index.js"
     },
     "testMatch": [
       "<rootDir>/src/**/__tests__/**/*.test.{ts,tsx}",

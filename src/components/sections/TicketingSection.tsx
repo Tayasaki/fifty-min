@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from '../ui/button';
 import { MapPin, Clock, MailCheck, AlertCircle, Accessibility } from 'lucide-react';
-import { MAX_TICKETS_PER_EMAIL, SHOWS, VENUES, RESERVATIONS_OPEN_AT, type Show, getVenue, showStart } from '../../config/shows';
+import { MAX_TICKETS_PER_EMAIL, SHOWS, VENUES, RESERVATIONS_OPEN_AT, type Show, getVenue, reservationsOpen, showStart } from '../../config/shows';
 import { getTurnstileSiteKey, ticketingOpen } from '../../config/features';
 import { CLOSED_COPY, PRIVACY_NOTICE, STARTED_LABEL, SUCCESS_TITLE, UNAVAILABLE_COPY, contactMailto, successText } from '../../config/billetterieCopy';
 import ReservationsCountdown from './ReservationsCountdown';
@@ -293,7 +293,7 @@ function ReservationForm({
   );
 }
 
-function SectionHeader({ children }: { children?: React.ReactNode }) {
+function SectionHeader() {
   return (
     <motion.div
       initial={{ opacity: 0, y: 40 }}
@@ -305,7 +305,6 @@ function SectionHeader({ children }: { children?: React.ReactNode }) {
       <p className="text-purple text-sm font-medium tracking-widest uppercase mb-3">Réservations</p>
       <h2 className="section-title">Billetterie</h2>
       <div className="w-16 h-1 rounded-full bg-purple mx-auto mt-4" />
-      {children}
     </motion.div>
   );
 }
@@ -416,14 +415,14 @@ function TicketingPanel() {
   return (
     <section id="billetterie" className="py-24 bg-background">
       <div className="max-w-6xl mx-auto px-6">
-        <SectionHeader>
-          <p className="section-subtitle max-w-xl mx-auto mt-6">
-            L'entrée est gratuite, mais la réservation est obligatoire. Choisissez une date, indiquez votre email, puis
-            confirmez la réservation grâce au lien reçu par email.
-          </p>
-        </SectionHeader>
+        <SectionHeader />
 
-            <ReservationsCountdown open />
+            {/* Closed by the server: count down only before the opening date, a finished countdown would read 00:00. */}
+            {!closed ? (
+              <ReservationsCountdown open />
+            ) : (
+              !reservationsOpen() && <ReservationsCountdown />
+            )}
 
             {/* Venue cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mt-8">

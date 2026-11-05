@@ -3,7 +3,7 @@ type: reference
 status: current
 review_trigger: "on file change"
 created: 2026-10-27
-last_updated: 2026-10-27
+last_updated: 2026-11-05
 related: [documentation/decisions/ADR-002-billetterie-claim-on-confirm.md, documentation/reference/billetterie-api-contract.md, documentation/runbooks/api-tests.md, documentation/runbooks/ui-tests.md, documentation/runbooks/billetterie-launch-checklist.md]
 ---
 
@@ -89,7 +89,7 @@ curl -H "Authorization: Bearer $ADMIN_TOKEN" "https://<site>/api/reservations?sh
 
 - Sans `show`, toutes les dates sont exportées. L'identifiant d'une date est la clé `id` de `src/config/shows.ts` (par exemple `2027-02-20-monique`).
 - Le jeton dans l'adresse (`?token=`) n'est plus lu : seul l'en-tête `Authorization` fonctionne.
-- Colonnes : `date;reservation;statut;nom;email;places;reserve_le`. Statuts : `confirmée`, `annulée`, `inconnu`. Les cellules qui commencent par `=`, `+`, `-` ou `@` reçoivent une apostrophe pour ne pas s'exécuter comme formule dans un tableur.
+- Colonnes : `date;reservation;statut;nom;email;places;reserve_le`. L'export ne contient que les réservations confirmées : une annulation retire la réservation de la liste de la date, elle n'y apparaît donc pas. Les libellés `annulée` et `inconnu` ne servent que de garde-fou si un enregistrement incohérent reste dans la liste. Les cellules qui commencent par `=`, `+`, `-` ou `@` reçoivent une apostrophe pour ne pas s'exécuter comme formule dans un tableur.
 - `ADMIN_TOKEN` fait au moins 32 caractères, sinon l'export répond 503 avant toute vérification.
 
 ## Fermer rapidement les réservations

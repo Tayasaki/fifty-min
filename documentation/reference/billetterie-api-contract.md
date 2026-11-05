@@ -3,7 +3,7 @@ type: reference
 status: current
 review_trigger: "on file change"
 created: 2026-10-27
-last_updated: 2026-10-27
+last_updated: 2026-11-05
 related: [documentation/decisions/ADR-002-billetterie-claim-on-confirm.md, documentation/milestones/_active/billetterie-claim-on-confirm/milestone-3.md, documentation/runbooks/api-tests.md]
 ---
 
@@ -52,6 +52,6 @@ Logs carry labels, ids, status codes and error `name` or `kind` only. Never an e
 
 ## Organizer export
 
-`Authorization: Bearer <ADMIN_TOKEN>` only. `?token=` is not read (organizer scripts that used it must send the header). Cells starting with `=`, `+`, `-`, `@`, TAB or CR get a leading apostrophe. Status labels: `confirmée`, `annulée`, `inconnu`.
+`Authorization: Bearer <ADMIN_TOKEN>` only. `?token=` is not read (organizer scripts that used it must send the header). Cells starting with `=`, `+`, `-`, `@`, TAB or CR get a leading apostrophe. The export lists confirmed reservations only: a cancellation removes the id from the show's list (`LREM` in the release script), so a cancelled booking never appears. The `annulée` and `inconnu` labels are a fallback for an inconsistent record left in the list.
 
 Client mapping of each `code` to behaviour: `documentation/runbooks/ui-tests.md`.
