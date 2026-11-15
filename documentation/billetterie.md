@@ -134,7 +134,7 @@ Si `status` vaut `cancelled`, les places sont déjà rendues : ne faire que les 
 - Modifier `src/config/shows.ts` et redéployer. Les compteurs sont dans Redis sous l'identifiant de la date : **ne jamais renommer un `id`** (c'est la clé Redis).
 - Augmenter une capacité est sans risque. La baisser sous le nombre de places déjà réservées provoque une sur-réservation silencieuse.
 - Ajouter une date : une ligne dans `SHOWS` ; les clés apparaissent à la première confirmation.
-- La capacité du Théâtre Le Monique est fixée à 100 (valeur prudente), le lieu a peut-être 120 places : question ouverte, étape 0 de la check-list de lancement.
+- Capacités actuelles : 70 places par représentation au Théâtre Le Monique (confirmé avec le lieu), 100 au Théâtre de la Julienne.
 
 ## Développement local
 
