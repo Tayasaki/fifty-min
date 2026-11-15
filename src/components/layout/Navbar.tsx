@@ -141,7 +141,7 @@ export default function Navbar() {
                 <li key={link.to}>
                   <button
                     onClick={() => handleNavClick(link)}
-                    className={cn('w-full text-left px-3 py-2.5 text-sm transition-colors duration-200', link.highlight && 'my-1 justify-center', linkStateClass(link))}
+                    className={cn('w-full text-left px-3 py-2.5 text-sm transition-colors duration-200', link.highlight && 'my-1 w-auto', linkStateClass(link))}
                   >
                     {linkContent(link)}
                   </button>
