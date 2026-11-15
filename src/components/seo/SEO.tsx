@@ -8,9 +8,11 @@ interface SEOProps {
   path: string;
   image?: string;
   type?: string;
+  /** Keeps the page out of search engines (hidden pages such as /admin). */
+  noindex?: boolean;
 }
 
-export default function SEO({ title, description, path, image = DEFAULT_OG_IMAGE, type = 'website' }: SEOProps) {
+export default function SEO({ title, description, path, image = DEFAULT_OG_IMAGE, type = 'website', noindex = false }: SEOProps) {
   const fullTitle = `${title} — ${SITE_NAME}`;
   const canonicalUrl = `${SITE_URL}${path}`;
   const ogImageUrl = image.startsWith('http') ? image : `${SITE_URL}${image}`;
@@ -19,6 +21,7 @@ export default function SEO({ title, description, path, image = DEFAULT_OG_IMAGE
     <Helmet>
       <title>{fullTitle}</title>
       <meta name="description" content={description} />
+      {noindex && <meta name="robots" content="noindex, nofollow" />}
       <link rel="canonical" href={canonicalUrl} />
 
       <meta property="og:title" content={fullTitle} />

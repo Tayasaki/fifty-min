@@ -13,6 +13,7 @@ const AgendaPage = lazy(() => import('./pages/AgendaPage'));
 const BilletteriePage = lazy(() => import('./pages/BilletteriePage'));
 const SoutenirPage = lazy(() => import('./pages/SoutenirPage'));
 const ContactPage = lazy(() => import('./pages/ContactPage'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
               <Route path="/billetterie" element={<BilletteriePage />} />
               <Route path="/soutenir" element={<SoutenirPage />} />
               <Route path="/contact" element={<ContactPage />} />
+              <Route path="/admin" element={<AdminPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
