@@ -35,7 +35,7 @@ Add about 40 minutes of day-1 monitoring (step 6): about 7 hours in all. Realist
 
 - [ ] (a) **Accept or veto ADR-002.** It is `status: proposed`. To accept it, make exactly two edits: set `status: accepted` in `documentation/decisions/ADR-002-billetterie-claim-on-confirm.md`, and add a row for ADR-002 to the table in `documentation/decisions/INDEX.md` (that index lists accepted ADRs only). Until then it stays proposed.
 - [ ] (b) **Review the French strings** flagged for owner review in `src/config/billetterieCopy.ts`: the privacy notice (`PRIVACY_NOTICE`), `successText`, `INVALID_LINK_COPY`, `UNAVAILABLE_COPY`, `recapFailedText`, `STARTED_LABEL`, and the on/off descriptions in `src/config/seo.ts`. Do not turn the flag on before this box is ticked.
-- [ ] (c) **Ask the Théâtre Le Monique**: 100 or 120 seats? Capacity is 100 in `src/config/shows.ts` (the conservative figure). Raising it later is safe; lowering it below the booked count overbooks.
+- [x] (c) **Théâtre Le Monique capacity**: 70 seats per evening, set in `src/config/shows.ts`. Raising it later is safe; lowering it below the booked count overbooks.
 - [ ] (d) **Harmonise two texts**: the countdown banner (`ReservationsCountdown.tsx`) says "Réservation recommandée · Chapeau à la sortie" while the form says the reservation is mandatory; and confirm that the 19 February show (added on `billeterie`, capacity 100) is part of the run.
 - [ ] (d) **Who holds `ADMIN_TOKEN`** (the door list export)? Write the name down.
 - [ ] (e) **Resend plan**: see step 1.2.

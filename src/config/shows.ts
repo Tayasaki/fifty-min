@@ -93,11 +93,11 @@ export const VENUES: Venue[] = [
   },
 ];
 
-// Le Monique capacity: 100 is the conservative figure (the venue may have 120 seats). Raising it is safe; lowering it below the booked count overbooks. Open question: launch checklist, step 0.
+// Le Monique capacity: 70 seats per evening (confirmed). Raising it is safe; lowering it below the booked count overbooks.
 export const SHOWS: Show[] = [
-  { id: '2027-02-19-monique', venueId: 'monique', date: '2027-02-19T19:00', doorsOpen: '18h30', label: 'Vendredi 19 février 2027 — 19h', capacity: 100 },
-  { id: '2027-02-20-monique', venueId: 'monique', date: '2027-02-20T19:00', doorsOpen: '18h30', label: 'Samedi 20 février 2027 — 19h', capacity: 100 },
-  { id: '2027-02-21-monique', venueId: 'monique', date: '2027-02-21T17:00', doorsOpen: '16h30', label: 'Dimanche 21 février 2027 — 17h', capacity: 100 },
+  { id: '2027-02-19-monique', venueId: 'monique', date: '2027-02-19T19:00', doorsOpen: '18h30', label: 'Vendredi 19 février 2027 — 19h', capacity: 70 },
+  { id: '2027-02-20-monique', venueId: 'monique', date: '2027-02-20T19:00', doorsOpen: '18h30', label: 'Samedi 20 février 2027 — 19h', capacity: 70 },
+  { id: '2027-02-21-monique', venueId: 'monique', date: '2027-02-21T17:00', doorsOpen: '16h30', label: 'Dimanche 21 février 2027 — 17h', capacity: 70 },
   { id: '2027-03-11-julienne', venueId: 'julienne', date: '2027-03-11T19:00', doorsOpen: '18h30', label: 'Jeudi 11 mars 2027 — 19h', capacity: 100 },
   { id: '2027-03-12-julienne', venueId: 'julienne', date: '2027-03-12T19:00', doorsOpen: '18h30', label: 'Vendredi 12 mars 2027 — 19h', capacity: 100 },
   { id: '2027-03-13-julienne', venueId: 'julienne', date: '2027-03-13T19:00', doorsOpen: '18h30', label: 'Samedi 13 mars 2027 — 19h', capacity: 100 },
