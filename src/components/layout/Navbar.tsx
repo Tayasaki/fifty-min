@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X } from 'lucide-react';
+import { Menu, Ticket, X } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import logo from '../../assets/logo.jpg';
 import { cn } from '../../lib/utils';
@@ -8,6 +8,8 @@ import { cn } from '../../lib/utils';
 interface NavLink {
   label: string;
   to: string;
+  /** Rendered as a call-to-action button instead of a plain link. */
+  highlight?: boolean;
 }
 
 const navLinks: NavLink[] = [
@@ -16,9 +18,11 @@ const navLinks: NavLink[] = [
   { label: "L'association", to: '/association' },
   { label: 'Ateliers', to: '/agenda' },
   { label: 'Soutenir', to: '/soutenir' },
-  { label: 'Billetterie', to: '/billetterie' },
+  { label: 'Billetterie', to: '/billetterie', highlight: true },
   { label: 'Contact', to: '/contact' },
 ];
+
+const ticketingLink = navLinks.find((link) => link.highlight);
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -40,6 +44,23 @@ export default function Navbar() {
   };
 
   const isActive = (link: NavLink) => pathname === link.to;
+
+  const linkStateClass = (link: NavLink) => {
+    if (link.highlight) {
+      return cn(
+        'inline-flex items-center gap-1.5 rounded-full bg-teal-deep text-white font-medium shadow-teal-glow-sm hover:bg-teal-deep/90',
+        isActive(link) && 'ring-2 ring-teal ring-offset-2'
+      );
+    }
+    return cn('rounded-lg hover:bg-teal/6', isActive(link) ? 'text-teal font-medium' : 'text-text-muted hover:text-teal');
+  };
+
+  const linkContent = (link: NavLink) => (
+    <>
+      {link.highlight && <Ticket size={16} aria-hidden="true" />}
+      {link.label}
+    </>
+  );
 
   return (
     <motion.nav
@@ -77,27 +98,32 @@ export default function Navbar() {
             <li key={link.to}>
               <button
                 onClick={() => handleNavClick(link)}
-                className={cn(
-                  'px-3 py-2 text-sm transition-colors duration-200 rounded-lg hover:bg-teal/6',
-                  isActive(link)
-                    ? 'text-teal font-medium'
-                    : 'text-text-muted hover:text-teal'
-                )}
+                className={cn('px-3 py-2 text-sm transition-colors duration-200', link.highlight && 'ml-1 px-4', linkStateClass(link))}
               >
-                {link.label}
+                {linkContent(link)}
               </button>
             </li>
           ))}
         </ul>
 
-        {/* Mobile hamburger */}
-        <button
-          className="lg:hidden text-text-muted hover:text-teal transition-colors p-2"
-          onClick={() => setMenuOpen((v) => !v)}
-          aria-label="Menu"
-        >
-          {menuOpen ? <X size={22} /> : <Menu size={22} />}
-        </button>
+        {/* Mobile: ticketing shortcut stays visible next to the hamburger */}
+        <div className="lg:hidden flex items-center gap-2">
+          {ticketingLink && (
+            <button
+              onClick={() => handleNavClick(ticketingLink)}
+              className={cn('px-3 py-1.5 text-sm transition-colors duration-200', linkStateClass(ticketingLink))}
+            >
+              {linkContent(ticketingLink)}
+            </button>
+          )}
+          <button
+            className="text-text-muted hover:text-teal transition-colors p-2"
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-label="Menu"
+          >
+            {menuOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile menu */}
@@ -115,14 +141,9 @@ export default function Navbar() {
                 <li key={link.to}>
                   <button
                     onClick={() => handleNavClick(link)}
-                    className={cn(
-                      'w-full text-left px-3 py-2.5 text-sm transition-colors duration-200 rounded-lg hover:bg-teal/6',
-                      isActive(link)
-                        ? 'text-teal font-medium'
-                        : 'text-text-muted hover:text-teal'
-                    )}
+                    className={cn('w-full text-left px-3 py-2.5 text-sm transition-colors duration-200', link.highlight && 'my-1 justify-center', linkStateClass(link))}
                   >
-                    {link.label}
+                    {linkContent(link)}
                   </button>
                 </li>
               ))}
