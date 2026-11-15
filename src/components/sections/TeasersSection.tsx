@@ -14,6 +14,8 @@ interface Teaser {
   color: string;
   bgColor: string;
   borderColor: string;
+  /** Stand-out card with a call-to-action label (Billetterie once bookings are open). */
+  cta?: string;
 }
 
 export function buildTeasers(ticketingEnabled: boolean): Teaser[] {
@@ -55,6 +57,7 @@ export function buildTeasers(ticketingEnabled: boolean): Teaser[] {
       color: 'text-teal',
       bgColor: 'bg-teal/10',
       borderColor: 'border-teal/20',
+      cta: ticketingEnabled ? 'Réserver ma place' : undefined,
     },
     {
       icon: Gift,
@@ -118,29 +121,39 @@ export default function TeasersSection() {
                 viewport={{ once: true, margin: '-40px' }}
               >
                 <Link to={teaser.to} className="block h-full group">
-                  <Card className="h-full transition-all duration-300 group-hover:shadow-card-hover group-hover:-translate-y-1">
+                  <Card
+                    className={cn(
+                      'h-full transition-all duration-300 group-hover:shadow-card-hover group-hover:-translate-y-1',
+                      teaser.cta && 'border-2 border-teal-deep shadow-teal-glow'
+                    )}
+                  >
                     <CardHeader>
                       <div
                         className={cn(
                           'h-11 w-11 rounded-lg flex items-center justify-center mb-3 border',
-                          teaser.bgColor,
-                          teaser.borderColor
+                          teaser.cta ? 'bg-teal-deep border-teal-deep' : [teaser.bgColor, teaser.borderColor]
                         )}
                       >
-                        <Icon size={20} className={teaser.color} />
+                        <Icon size={20} className={teaser.cta ? 'text-white' : teaser.color} />
                       </div>
                       <CardTitle className="text-lg">{teaser.title}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <CardDescription className="mb-4">{teaser.description}</CardDescription>
-                      <span
-                        className={cn(
-                          'text-xs font-medium transition-transform inline-block group-hover:translate-x-1',
-                          teaser.color
-                        )}
-                      >
-                        En savoir plus →
-                      </span>
+                      {teaser.cta ? (
+                        <span className="inline-flex items-center rounded-full bg-teal-deep px-4 py-2 text-sm font-medium text-white transition-colors group-hover:bg-teal-deep/90">
+                          {teaser.cta} →
+                        </span>
+                      ) : (
+                        <span
+                          className={cn(
+                            'text-xs font-medium transition-transform inline-block group-hover:translate-x-1',
+                            teaser.color
+                          )}
+                        >
+                          En savoir plus →
+                        </span>
+                      )}
                     </CardContent>
                   </Card>
                 </Link>

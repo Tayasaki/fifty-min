@@ -191,6 +191,11 @@ describe('TeasersSection render', () => {
     expect(screen.queryByText(TEASER_OFF)).not.toBeInTheDocument();
   });
 
+  test('the Billetterie card shows the booking call-to-action only when ticketing is open', () => {
+    expect(billetterieTeaser(true).cta).toBe('Réserver ma place');
+    expect(billetterieTeaser(false).cta).toBeUndefined();
+  });
+
   test('the Billetterie link target is the same in both states', () => {
     expect(billetterieTeaser(false).to).toBe('/billetterie');
     expect(billetterieTeaser(true).to).toBe('/billetterie');
